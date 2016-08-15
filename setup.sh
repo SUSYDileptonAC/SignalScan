@@ -1,6 +1,7 @@
 #!/bin/bash
 
 mkdir DataCards
+mkdir DataCardsFlatSystematics
 mkdir fig
 mkdir fig/BTagUncertaintyHeavy
 mkdir fig/BTagUncertaintyLight
@@ -10,12 +11,12 @@ mkdir fig/JESUncertainty
 mkdir fig/LeptonFastSimUncertainty
 mkdir fig/LeptonFullSimUncertainty
 mkdir fig/MetUncertainty
+mkdir fig/pileupUncertainty
 mkdir fig/statUncertainty
 mkdir fig/systUncertainty
 mkdir fig/totUncertainty
 mkdir fig/Yields
-mkdir tab
 mkdir shelves
-mkdir shelvesCutFlowTables
+mkdir shelvesYields
 
 

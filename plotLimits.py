@@ -30,12 +30,11 @@ def plot():
 	Graphs = {}
 	Histograms = {}
 	
-	printLumi = "12.9"
-	#~ printLumi = "7.65"
+	printLumi = "2.3"
 	
 	m_n_min = 150
-	m_n_max = 1000
-	m_b_min = 500
+	m_n_max = 900
+	m_b_min = 400
 	m_b_max = 950
 	
 	PDFAndScaleUncert = 0.15
@@ -60,7 +59,7 @@ def plot():
 		
 		while m_n < m_b:
 			
-			if not ((m_b == 700 and m_n == 325) or (m_b == 775 and m_n == 750) or (m_b == 800 and m_n == 150) or (m_b == 950 and m_n == 900) or (m_b == 950 and m_n == 850) or (m_b == 950 and m_n == 550) or (m_b == 950 and m_n == 500) or (m_b == 950 and m_n == 300) or (m_b == 950 and m_n == 250)):
+			if not ((m_b == 775 and m_n == 750) or (m_b == 800 and m_n == 150)):
 				
 				#~ print "Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n))
 				limitFile = open("Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
@@ -102,20 +101,6 @@ def plot():
 	bin_size =12.5
 	nxbins = int(min(500,(m_b_max-m_b_min)/bin_size))
 	nybins = int(min(500,(m_n_max-m_n_min)/bin_size))
-	
-	masses_b.append(950)
-	masses_n.append(1070)
-	
-	Exclusions["obsR"].append(1.5)
-	Exclusions["obsR_up"].append(1.5)
-	Exclusions["obsR_down"].append(1.5)
-			
-	Exclusions["obsXsecLimit"].append(1.5*xSection)
-	Exclusions["expR"].append(1.5)
-	Exclusions["expR_down"].append(1.5)
-	Exclusions["expR_up"].append(1.5)
-	Exclusions["expR_2down"].append(1.5)
-	Exclusions["expR_2up"].append(1.5)
 	
 	for exclusionContour in exclusionContours:
 		Graphs[exclusionContour] = TGraph2D("Graph_%s"%(exclusionContour),exclusionContour, len(Exclusions[exclusionContour]), array('d',masses_b), array('d',masses_n), array('d',Exclusions[exclusionContour]))
@@ -253,9 +238,8 @@ def plot():
 	Overlay.Draw("f")
 	
 	latexLumi.DrawLatex(0.83, 0.94, "%s fb^{-1} (13 TeV)"%(printLumi))
-	#~ latexCMS.DrawLatex(0.18,0.94,"CMS Preliminary")
 	latexCMS.DrawLatex(0.18,0.94,"CMS")
-	latexCMSExtra.DrawLatex(0.285,0.94,"Preliminary")
+	latexCMSExtra.DrawLatex(0.285,0.94,"Private Work")
 	plotPad.RedrawAxis()
 	leg1.Draw("same")
 	leg.Draw("same")
