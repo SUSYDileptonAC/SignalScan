@@ -1,5 +1,7 @@
 #!/bin/bash
 
+mkdir combinedDataCards
+mkdir combinedDataCardsFlatSystematics
 mkdir DataCards
 mkdir DataCardsFlatSystematics
 mkdir fig

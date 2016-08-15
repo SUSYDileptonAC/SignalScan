@@ -7,6 +7,8 @@ from frameworkStructure import pathes
 sys.path.append(pathes.basePath)
 from messageLogger import messageLogger as log
 
+ROOT.gROOT.SetBatch(True)
+
 from array import *
 
 def plot():

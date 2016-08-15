@@ -11,6 +11,8 @@ from array import *
 
 from optparse import OptionParser
 
+ROOT.gROOT.SetBatch(True)
+
 
 def loadPickles(path):
 	from glob import glob
@@ -62,8 +64,11 @@ def plot(systematics):
 	
 
 	
-	
-	path = "shelves"
+	if systematics:
+		path = "shelves"
+	else:
+		path = "shelvesYields"
+		
 	generalSignalLabel = "T6bbllslepton"
 	
 	observables = ["mll"]
