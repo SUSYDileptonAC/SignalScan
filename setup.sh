@@ -14,9 +14,9 @@ mkdir fig/LeptonFastSimUncertainty
 mkdir fig/LeptonFullSimUncertainty
 mkdir fig/MetUncertainty
 mkdir fig/pileupUncertainty
-mkdir fig/statUncertainty
-mkdir fig/systUncertainty
-mkdir fig/totUncertainty
+mkdir fig/statUncertainties
+mkdir fig/systUncertainties
+mkdir fig/totUncertainties
 mkdir fig/Yields
 mkdir shelves
 mkdir shelvesYields

@@ -115,7 +115,7 @@ def plot():
 	
 	Histograms["obsXsecLimit"] = Graphs["obsXsecLimit"].GetHistogram()
 	Histograms["obsXsecLimit"].SetTitle(";m_{#tilde{b}} [GeV]; m_{#tilde{#chi_{2}^{0}}} [GeV]")
-	Histograms["obsXsecLimit"].GetZaxis().SetRangeUser(0.01,1.)
+	Histograms["obsXsecLimit"].GetZaxis().SetRangeUser(0.1,1.)
 		
 	Histograms["expR"] = Graphs["expR"].GetHistogram()	
 	Histograms["expR"].SetContour(1,contours)

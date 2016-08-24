@@ -11,7 +11,7 @@ for COMBINATION in $COMBINATIONS; do
 	echo $SBOTTOM
 	echo $NEUTRALINO
 	MODEL="T6bbllslepton_${SBOTTOM}_${NEUTRALINO}"
-	DATACARD="../DataCards/${MODEL}.txt"
+	DATACARD="../combinedDataCards/${MODEL}.txt"
 	RESULT="$MODEL.result.txt"
 	LOG_ASYMPTOTIC='asymptotic.log'
 
@@ -33,10 +33,10 @@ for COMBINATION in $COMBINATIONS; do
 
 
 	#Calculate asymptotic CLs x-section limits
-	echo "$EXE -M ProfileLikelihood --uncapped 1 --significance $DATACARD > $LOG_ASYMPTOTIC"
+	echo "$EXE -M ProfileLikelihood --uncapped 1 --rMin -2. --significance $DATACARD > $LOG_ASYMPTOTIC"
 	$EXE -M ProfileLikelihood --uncapped 1 --significance $DATACARD > $LOG_ASYMPTOTIC
 	Signif=`grep "Significance:" $LOG_ASYMPTOTIC | cut -b 15-21`
-	PValue=`grep "p-value =" $LOG_ASYMPTOTIC | cut -b 19-27`
+	PValue=`grep "p-value =" $LOG_ASYMPTOTIC | cut -b 19-26`
 
 	echo "" >> $RESULT
 	echo "CLs observed significance = $Signif" >> $RESULT

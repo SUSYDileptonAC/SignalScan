@@ -12,7 +12,7 @@ for COMBINATION in $COMBINATIONS; do
 	echo $NEUTRALINO
 	MODEL="T6bbllslepton_${SBOTTOM}_${NEUTRALINO}"
 	#~ DATACARD="../combinedDataCardsFlatSystematics/${MODEL}.txt"
-	DATACARD="../combinedDataCardsFlatSystematics/${MODEL}.txt"
+	DATACARD="../combinedDataCards/${MODEL}.txt"
 	RESULT="$MODEL.result.txt"
 	LOG_ASYMPTOTIC='asymptotic.log'
 

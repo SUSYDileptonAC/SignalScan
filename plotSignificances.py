@@ -92,7 +92,7 @@ def plot():
 	
 	Histogram = Graph.GetHistogram()
 	Histogram.SetTitle(";m_{#tilde{b}} [GeV]; m_{#tilde{#chi_{2}^{0}}} [GeV]")
-	Histogram.GetZaxis().SetRangeUser(1.,4.)
+	Histogram.GetZaxis().SetRangeUser(0.,2.)
 	
 	
 	latex = ROOT.TLatex()

@@ -267,7 +267,7 @@ if (__name__ == "__main__"):
 										"MuMuISRUp":MuMuISRUp * MuMuTriggerEff * scalingLumi,"MuMuISRDown":MuMuISRDown * MuMuTriggerEff * scalingLumi,
 										"MuMubTagHeavy":MuMuBTagHeavy * MuMuTriggerEff * scalingLumi,"MuMubTagLight":MuMuBTagLight * MuMuTriggerEff * scalingLumi}
 										
-								outFilePkl = open("shelves/%s_%s_MuMu.pkl"%(fileName,suffix),"w")
+								outFilePkl = open("shelves/%s_%s.pkl"%(fileName,suffix),"w")
 								pickle.dump(counts, outFilePkl)
 								outFilePkl.close()
 										

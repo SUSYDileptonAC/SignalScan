@@ -208,8 +208,7 @@ def writeDataCards():
 				BTag= {}			
 				
 				
-				for region in regions:
-	
+				for region in regions:	
 					Pickles["%s_%s"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
 					
 					Yields["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEval"]
