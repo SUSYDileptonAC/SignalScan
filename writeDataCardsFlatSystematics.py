@@ -154,18 +154,15 @@ def writeDataCards():
 	
 
 	m_n_min = 150
-	m_b_min = 400
-	m_b_max = 950
+	m_b_min = 450
+	m_b_max = 700
 				
 	
-	m_b = m_b_min	
+	m_b = m_b_min
+	m_b_stepsize = 25	
 	while m_b <= m_b_max:
 		print m_b
-		if m_b < 800:
-			stepsize = 25
-		else:
-			stepsize = 50
-		
+				
 		M_SBOTTOM = "m_b_"+str(m_b)
 		m_sbottom = str(m_b)
 		xsection = getattr(sbottom_masses, M_SBOTTOM).cross_section13TeV
@@ -173,118 +170,113 @@ def writeDataCards():
 		m_n = m_n_min
 		
 		while m_n < m_b:
-			#~ print m_n
+			
+			if m_n < 300:
+				m_n_stepsize = 25
+			else:
+				m_n_stepsize = 50
+				
 			m_neutralino_2 = str(m_n)
-			
-			if not ((m_b == 775 and m_n == 750) or (m_b == 800 and m_n == 150)):
 		
-			
 
-				Pickles = {}
-				Yields = {}
-				MCEvents = {}
-				statUncertainties = {}
-				systUncertainties = {}
-				JES = {}
-				LeptonFastSim = {}
-				LeptonFullSim = {}
-				Pileup = {}
-				ISR= {}			
-				BTag= {}			
+			Pickles = {}
+			Yields = {}
+			MCEvents = {}
+			statUncertainties = {}	
+			
+			
+			for region in regions:
+
+				Pickles["%s_%s"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
+				
+				Yields["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEval"]
+				Yields["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuval"]
+				Yields["MuMu_%s"%region] =  Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuval"]
+				Yields["SFOF_%s"%region] = Yields["EE_%s"%region] + Yields["MuMu_%s"%region] - Yields["EMu_%s"%region]
+				Yields["SFOF_%s"%region] = max(Yields["SFOF_%s"%region],0)
+				
+				MCEvents["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEMCEvents"]
+				MCEvents["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuMCEvents"]
+				MCEvents["MuMu_%s"%region] =  Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuMCEvents"]
+				MCEvents["SFOF_%s"%region] = MCEvents["EE_%s"%region] + MCEvents["MuMu_%s"%region] - MCEvents["EMu_%s"%region]
+				MCEvents["SFOF_%s"%region] = max(MCEvents["SFOF_%s"%region],0)
+				
+				if MCEvents["SFOF_%s"%region] > 0:
+					statUncertainties["SFOF_%s"%region] = sqrt(MCEvents["EE_%s"%region]+MCEvents["EMu_%s"%region]+MCEvents["MuMu_%s"%region])/MCEvents["SFOF_%s"%region]
+				else:
+					statUncertainties["SFOF_%s"%region] = 0						
+				
+			
+			ValueNoBTagCentral = {}
+			ValueGeOneBTagCentral = {}
+			ValueNoBTagForward = {}
+			ValueGeOneBTagForward = {}
+			
+			StatUncertaintyNoBTagCentral = {}
+			StatUncertaintyGeOneBTagCentral = {}
+			StatUncertaintyNoBTagForward = {}
+			StatUncertaintyGeOneBTagForward = {}
+			
+					
+			
+			
+			
+			for massRegion in massRegions:
+				ValueNoBTagCentral[massRegion] = Yields["SFOF_central_%s_noBTag"%massRegion]
+				ValueGeOneBTagCentral[massRegion] = Yields["SFOF_central_%s_geOneBTag"%massRegion]
+				ValueNoBTagForward[massRegion] = Yields["SFOF_forward_%s_noBTag"%massRegion]
+				ValueGeOneBTagForward[massRegion] = Yields["SFOF_forward_%s_geOneBTag"%massRegion]
 				
 				
-				for region in regions:
-	
-					Pickles["%s_%s"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
-					
-					Yields["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEval"]
-					Yields["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuval"]
-					Yields["MuMu_%s"%region] =  Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuval"]
-					Yields["SFOF_%s"%region] = Yields["EE_%s"%region] + Yields["MuMu_%s"%region] - Yields["EMu_%s"%region]
-					Yields["SFOF_%s"%region] = max(Yields["SFOF_%s"%region],0)
-					
-					MCEvents["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEMCEvents"]
-					MCEvents["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuMCEvents"]
-					MCEvents["MuMu_%s"%region] =  Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuMCEvents"]
-					MCEvents["SFOF_%s"%region] = MCEvents["EE_%s"%region] + MCEvents["MuMu_%s"%region] - MCEvents["EMu_%s"%region]
-					MCEvents["SFOF_%s"%region] = max(MCEvents["SFOF_%s"%region],0)
-					
-					if MCEvents["SFOF_%s"%region] > 0:
-						statUncertainties["SFOF_%s"%region] = sqrt(MCEvents["EE_%s"%region]+MCEvents["EMu_%s"%region]+MCEvents["MuMu_%s"%region])/MCEvents["SFOF_%s"%region]
-					else:
-						statUncertainties["SFOF_%s"%region] = 0						
-					
-				
-				ValueNoBTagCentral = {}
-				ValueGeOneBTagCentral = {}
-				ValueNoBTagForward = {}
-				ValueGeOneBTagForward = {}
-				
-				StatUncertaintyNoBTagCentral = {}
-				StatUncertaintyGeOneBTagCentral = {}
-				StatUncertaintyNoBTagForward = {}
-				StatUncertaintyGeOneBTagForward = {}
-				
-						
+				StatUncertaintyNoBTagCentral[massRegion]  = statUncertainties["SFOF_central_%s_noBTag"%massRegion]
+				StatUncertaintyGeOneBTagCentral[massRegion] = statUncertainties["SFOF_central_%s_geOneBTag"%massRegion]
+				StatUncertaintyNoBTagForward[massRegion] = statUncertainties["SFOF_forward_%s_noBTag"%massRegion]
+				StatUncertaintyGeOneBTagForward[massRegion] = statUncertainties["SFOF_forward_%s_geOneBTag"%massRegion]
 				
 				
+				n_bins = 4
+				n_processes = 2
+				n_nuicance_parameters = 11
 				
-				for massRegion in massRegions:
-					ValueNoBTagCentral[massRegion] = Yields["SFOF_central_%s_noBTag"%massRegion]
-					ValueGeOneBTagCentral[massRegion] = Yields["SFOF_central_%s_geOneBTag"%massRegion]
-					ValueNoBTagForward[massRegion] = Yields["SFOF_forward_%s_noBTag"%massRegion]
-					ValueGeOneBTagForward[massRegion] = Yields["SFOF_forward_%s_geOneBTag"%massRegion]
+				Name= "T6bbllslepton_%s_%s_%s"%(m_sbottom,m_neutralino_2,massRegion)
+				DataCard = open("DataCardsFlatSystematics/%s.txt"%Name,'w')
+				
+				DataCard.write("# sbottom = %s \n"%m_sbottom)
+				DataCard.write("# neutralino 2 = %s \n"%m_neutralino_2)
+				DataCard.write("# mass region = %s \n"%massRegion)
+				DataCard.write("# Xsection = %s \n"%xsection)
+				DataCard.write("imax %s number of bins \n"%n_bins)
+				DataCard.write("jmax %s number of processes minus 1 \n"%n_processes)
+				DataCard.write("kmax %s number of nuisance parameters \n"%n_nuicance_parameters)
+				DataCard.write("------------------------------------------------------------------------------------------- \n")
+				DataCard.write("bin          CentrNoBTag   CentrGeOneBTag  ForwNoBTag   ForwGeOneBTag  \n")
+				DataCard.write("observation  %s            %s              %s           %s  \n"%(resultsCentralNoBTags["%sSF"%massRegion],resultsCentralGeOneBTags["%sSF"%massRegion],resultsForwardNoBTags["%sSF"%massRegion],resultsForwardGeOneBTags["%sSF"%massRegion]))
+				DataCard.write("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
+				DataCard.write("bin                                     CentrNoBTag   CentrNoBTag   CentrNoBTag  CentrGeOneBTag   CentrGeOneBTag   CentrGeOneBTag  ForwNoBTag   ForwNoBTag   ForwNoBTag  ForwGeOneBTag   ForwGeOneBTag   ForwGeOneBTag   \n")
+				DataCard.write("process                                 SUSY          ZJets         OF           SUSY             ZJets            OF              SUSY         ZJets        OF          SUSY            ZJets           OF     \n")
+				DataCard.write("process                                 0             1             2            0                1                2               0            1            2           0               1               2      \n")
+				DataCard.write("rate                                    %s            %s            %s           %s               %s               %s              %s           %s           %s          %s             %s              %s      \n"%(ValueNoBTagCentral[massRegion],resultsCentralNoBTags["%sZPredSF"%massRegion],resultsCentralNoBTags["%sOF"%massRegion]*rSFOFCentral,ValueGeOneBTagCentral[massRegion],resultsCentralGeOneBTags["%sZPredSF"%massRegion],resultsCentralGeOneBTags["%sOF"%massRegion]*rSFOFCentral,ValueNoBTagForward[massRegion],resultsForwardNoBTags["%sZPredSF"%massRegion],resultsForwardNoBTags["%sOF"%massRegion]*rSFOFForward,ValueGeOneBTagForward[massRegion],resultsForwardGeOneBTags["%sZPredSF"%massRegion],resultsForwardGeOneBTags["%sOF"%massRegion]*rSFOFForward))
+				DataCard.write("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
+				
+				DataCard.write("SigSystUncertainty              lnN     %s            -             -            %s               -                -               %s           -            -           %s              -               -  \n"%(str(1+systUncertainty),str(1+systUncertainty ),str(1+systUncertainty ),str(1+systUncertainty )))
 					
-					
-					StatUncertaintyNoBTagCentral[massRegion]  = statUncertainties["SFOF_central_%s_noBTag"%massRegion]
-					StatUncertaintyGeOneBTagCentral[massRegion] = statUncertainties["SFOF_central_%s_geOneBTag"%massRegion]
-					StatUncertaintyNoBTagForward[massRegion] = statUncertainties["SFOF_forward_%s_noBTag"%massRegion]
-					StatUncertaintyGeOneBTagForward[massRegion] = statUncertainties["SFOF_forward_%s_geOneBTag"%massRegion]
-					
-					
-					n_bins = 4
-					n_processes = 2
-					n_nuicance_parameters = 11
-					
-					Name= "T6bbllslepton_%s_%s_%s"%(m_sbottom,m_neutralino_2,massRegion)
-					DataCard = open("DataCardsFlatSystematics/%s.txt"%Name,'w')
-					
-					DataCard.write("# sbottom = %s \n"%m_sbottom)
-					DataCard.write("# neutralino 2 = %s \n"%m_neutralino_2)
-					DataCard.write("# mass region = %s \n"%massRegion)
-					DataCard.write("# Xsection = %s \n"%xsection)
-					DataCard.write("imax %s number of bins \n"%n_bins)
-					DataCard.write("jmax %s number of processes minus 1 \n"%n_processes)
-					DataCard.write("kmax %s number of nuisance parameters \n"%n_nuicance_parameters)
-					DataCard.write("------------------------------------------------------------------------------------------- \n")
-					DataCard.write("bin          CentrNoBTag   CentrGeOneBTag  ForwNoBTag   ForwGeOneBTag  \n")
-					DataCard.write("observation  %s            %s              %s           %s  \n"%(resultsCentralNoBTags["%sSF"%massRegion],resultsCentralGeOneBTags["%sSF"%massRegion],resultsForwardNoBTags["%sSF"%massRegion],resultsForwardGeOneBTags["%sSF"%massRegion]))
-					DataCard.write("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
-					DataCard.write("bin                                     CentrNoBTag   CentrNoBTag   CentrNoBTag  CentrGeOneBTag   CentrGeOneBTag   CentrGeOneBTag  ForwNoBTag   ForwNoBTag   ForwNoBTag  ForwGeOneBTag   ForwGeOneBTag   ForwGeOneBTag   \n")
-					DataCard.write("process                                 SUSY          ZJets         OF           SUSY             ZJets            OF              SUSY         ZJets        OF          SUSY            ZJets           OF     \n")
-					DataCard.write("process                                 0             1             2            0                1                2               0            1            2           0               1               2      \n")
-					DataCard.write("rate                                    %s            %s            %s           %s               %s               %s              %s           %s           %s          %s             %s              %s      \n"%(ValueNoBTagCentral[massRegion],resultsCentralNoBTags["%sZPredSF"%massRegion],resultsCentralNoBTags["%sOF"%massRegion]*rSFOFCentral,ValueGeOneBTagCentral[massRegion],resultsCentralGeOneBTags["%sZPredSF"%massRegion],resultsCentralGeOneBTags["%sOF"%massRegion]*rSFOFCentral,ValueNoBTagForward[massRegion],resultsForwardNoBTags["%sZPredSF"%massRegion],resultsForwardNoBTags["%sOF"%massRegion]*rSFOFForward,ValueGeOneBTagForward[massRegion],resultsForwardGeOneBTags["%sZPredSF"%massRegion],resultsForwardGeOneBTags["%sOF"%massRegion]*rSFOFForward))
-					DataCard.write("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
-					
-					DataCard.write("SigSystUncertainty              lnN     %s            -             -            %s               -                -               %s           -            -           %s              -               -  \n"%(str(1+systUncertainty),str(1+systUncertainty ),str(1+systUncertainty ),str(1+systUncertainty )))
-						
-					DataCard.write("SigStatUncertCentrNoBTag_%s     lnN     %s            -             -            -                -                -               -            -            -           -               -               -  \n"%(massRegion,str(1+StatUncertaintyNoBTagCentral[massRegion])))
-					DataCard.write("SigStatUncertCentrGeOneBTag_%s  lnN     -             -             -            %s               -                -               -            -            -           -               -               -  \n"%(massRegion,str(1+StatUncertaintyGeOneBTagCentral[massRegion])))
-					DataCard.write("SigStatUncertForwNoBTag_%s      lnN     -             -             -            -                -                -               %s           -            -           -               -               -  \n"%(massRegion,str(1+StatUncertaintyNoBTagForward[massRegion])))
-					DataCard.write("SigStatUncertForwGeOneBTag_%s   lnN     -             -             -            -                -                -               -            -            -           %s              -               -  \n"%(massRegion,str(1+StatUncertaintyGeOneBTagForward[massRegion])))
-											
-					DataCard.write("OFStatUncertCentrNoBTag_%s      gmN %s  -             -             %s           -                -                -               -            -            -           -               -               -  \n"%(massRegion,str(resultsCentralNoBTags["%sOF"%massRegion]),str(rSFOFCentral)))
-					DataCard.write("OFStatUncertCentrGeOneBTag_%s   gmN %s  -             -             -            -                -               %s               -            -            -           -               -               -  \n"%(massRegion,str(resultsCentralGeOneBTags["%sOF"%massRegion]),str(rSFOFCentral)))
-					DataCard.write("OFStatUncertForwNoBTag_%s       gmN %s  -             -             -            -                -                -               -            -            %s          -               -               -  \n"%(massRegion,str(resultsForwardNoBTags["%sOF"%massRegion]),str(rSFOFForward)))
-					DataCard.write("OFStatUncertForwGeOneBTag_%s    gmN %s  -             -             -            -                -                -               -            -            -           -               -              %s  \n"%(massRegion,str(resultsForwardGeOneBTags["%sOF"%massRegion]),str(rSFOFForward)))
-					
-					DataCard.write("RSFOFUncert                     lnN     -             -            %s            -                -               %s               -            -           %s           -               -              %s  \n"%(str(1+rSFOFCentralUnc),str(1+rSFOFCentralUnc),str(1+rSFOFForwardUnc),str(1+rSFOFForwardUnc)))
-					
-					DataCard.write("ZJetsUncert                     lnN     -             %s            -            -                %s               -               -            %s           -           -               %s              -  \n"%(str(1+resultsCentralNoBTags["%sZPredErrSF"%massRegion]),str(1+resultsCentralGeOneBTags["%sZPredErrSF"%massRegion]),str(1+resultsForwardNoBTags["%sZPredErrSF"%massRegion]),str(1+resultsForwardGeOneBTags["%sZPredErrSF"%massRegion])))
-					
+				DataCard.write("SigStatUncertCentrNoBTag_%s     lnN     %s            -             -            -                -                -               -            -            -           -               -               -  \n"%(massRegion,str(1+StatUncertaintyNoBTagCentral[massRegion])))
+				DataCard.write("SigStatUncertCentrGeOneBTag_%s  lnN     -             -             -            %s               -                -               -            -            -           -               -               -  \n"%(massRegion,str(1+StatUncertaintyGeOneBTagCentral[massRegion])))
+				DataCard.write("SigStatUncertForwNoBTag_%s      lnN     -             -             -            -                -                -               %s           -            -           -               -               -  \n"%(massRegion,str(1+StatUncertaintyNoBTagForward[massRegion])))
+				DataCard.write("SigStatUncertForwGeOneBTag_%s   lnN     -             -             -            -                -                -               -            -            -           %s              -               -  \n"%(massRegion,str(1+StatUncertaintyGeOneBTagForward[massRegion])))
+										
+				DataCard.write("OFStatUncertCentrNoBTag_%s      gmN %s  -             -             %s           -                -                -               -            -            -           -               -               -  \n"%(massRegion,str(resultsCentralNoBTags["%sOF"%massRegion]),str(rSFOFCentral)))
+				DataCard.write("OFStatUncertCentrGeOneBTag_%s   gmN %s  -             -             -            -                -               %s               -            -            -           -               -               -  \n"%(massRegion,str(resultsCentralGeOneBTags["%sOF"%massRegion]),str(rSFOFCentral)))
+				DataCard.write("OFStatUncertForwNoBTag_%s       gmN %s  -             -             -            -                -                -               -            -            %s          -               -               -  \n"%(massRegion,str(resultsForwardNoBTags["%sOF"%massRegion]),str(rSFOFForward)))
+				DataCard.write("OFStatUncertForwGeOneBTag_%s    gmN %s  -             -             -            -                -                -               -            -            -           -               -              %s  \n"%(massRegion,str(resultsForwardGeOneBTags["%sOF"%massRegion]),str(rSFOFForward)))
+				
+				DataCard.write("RSFOFUncert                     lnN     -             -            %s            -                -               %s               -            -           %s           -               -              %s  \n"%(str(1+rSFOFCentralUnc),str(1+rSFOFCentralUnc),str(1+rSFOFForwardUnc),str(1+rSFOFForwardUnc)))
+				
+				DataCard.write("ZJetsUncert                     lnN     -             %s            -            -                %s               -               -            %s           -           -               %s              -  \n"%(str(1+resultsCentralNoBTags["%sZPredErrSF"%massRegion]),str(1+resultsCentralGeOneBTags["%sZPredErrSF"%massRegion]),str(1+resultsForwardNoBTags["%sZPredErrSF"%massRegion]),str(1+resultsForwardGeOneBTags["%sZPredErrSF"%massRegion])))
+				
 							
-			m_n += stepsize		
-		m_b += stepsize
+			m_n += m_n_stepsize		
+		m_b += m_b_stepsize
 			
 	
 

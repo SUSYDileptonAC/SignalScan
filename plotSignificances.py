@@ -34,9 +34,9 @@ def plot():
 	printLumi = "12.9"
 	
 	m_n_min = 150
-	m_n_max = 1000
-	m_b_min = 500
-	m_b_max = 950
+	m_n_max = 750
+	m_b_min = 450
+	m_b_max = 700
 	
 	PDFAndScaleUncert = 0.15
 	
@@ -46,42 +46,41 @@ def plot():
 	significances = []
 		
 	m_b = m_b_min
-	while m_b <= m_b_max:
-		if m_b < 800:
-			stepsize = 25
-		else:
-			stepsize = 50
-			
+	m_b_stepsize = 25
+	while m_b <= m_b_max:			
 		m_n = m_n_min
 		
 		while m_n < m_b:
 			
-			if not ((m_b == 700 and m_n == 325) or (m_b == 775 and m_n == 750) or (m_b == 800 and m_n == 150) or (m_b == 950 and m_n == 900) or (m_b == 950 and m_n == 850) or (m_b == 950 and m_n == 550) or (m_b == 950 and m_n == 500) or (m_b == 950 and m_n == 300) or (m_b == 950 and m_n == 250)):
+			if m_n < 300:
+				m_n_stepsize = 25
+			else:
+				m_n_stepsize = 50			
+			
+			#~ print "Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n))
+			limitFile = open("Significances/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
+			masses_b.append(m_b)
+			masses_n.append(m_n)
+			M_SBOTTOM = "m_b_"+str(m_b)
+			
+			for line in limitFile:
 				
-				#~ print "Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n))
-				limitFile = open("Significances/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
-				masses_b.append(m_b)
-				masses_n.append(m_n)
-				M_SBOTTOM = "m_b_"+str(m_b)
-				
-				for line in limitFile:
+				if "observed significance" in line:
+					significance = float(re.findall("\d+\.\d+",line)[0])
+
+					significances.append(significance)
 					
-					if "observed significance" in line:
-						significance = float(re.findall("\d+\.\d+",line)[0])
-	
-						significances.append(significance)
-						
-			m_n += stepsize		
-		m_b += stepsize
+			m_n += m_n_stepsize		
+		m_b += m_bstepsize
 		
 	bin_size =12.5
 	nxbins = int(min(500,(m_b_max-m_b_min)/bin_size))
 	nybins = int(min(500,(m_n_max-m_n_min)/bin_size))
 	
-	masses_b.append(950)
-	masses_n.append(1000)
+	masses_b.append(700)
+	masses_n.append(750)
 	
-	significances.append(1.5)
+	significances.append(0.)
 	
 	
 	Graph = TGraph2D("Graph_significance","Significance", len(significances), array('d',masses_b), array('d',masses_n), array('d',significances))
@@ -117,13 +116,13 @@ def plot():
 	latexLegendHeader.SetNDC(True)
 	
 	Overlay = ROOT.TGraph(0)
-	Overlay.SetPoint(0, 400, 365)
-	Overlay.SetPoint(1, 950, 890)
-	Overlay.SetPoint(2, 400, 890)
-	Overlay.SetPoint(3, 400, 365)
+	Overlay.SetPoint(0, 450, 315)
+	Overlay.SetPoint(1, 700, 640)
+	Overlay.SetPoint(2, 450, 640)
+	Overlay.SetPoint(3, 450, 415)
 	Overlay.SetFillColor(0)
 	
-	oneLine = ROOT.TLine(400, 375, 950, 900)
+	oneLine = ROOT.TLine(450, 425, 700, 650)
 	oneLine.SetLineStyle(9)
 	oneLine.SetLineWidth(2)
 	

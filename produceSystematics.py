@@ -133,9 +133,9 @@ if (__name__ == "__main__"):
 	triggerEffUncertainty = 0.05
 	lumiUncertainty = 0.027
 		
-	m_b_max = 950
-	m_b_min = 400
-	m_n_max = 900
+	m_b_max = 700
+	m_b_min = 450
+	m_n_max = 650
 	m_n_min = 150
 
 		
@@ -149,13 +149,10 @@ if (__name__ == "__main__"):
 	EEtrees = readTrees(path, "EE")	
 	MuMutrees = readTrees(path, "MuMu")	
 	
-	m_b = m_b_min	
+	m_b = m_b_min
+	m_b_stepsize = 25	
 	while m_b <= m_b_max:
 		print m_b
-		if m_b < 800:
-			stepsize = 25
-		else:
-			stepsize = 50
 			
 		M_SBOTTOM = "m_b_"+str(m_b)
 		m_sbottom = str(m_b)
@@ -163,118 +160,121 @@ if (__name__ == "__main__"):
 		while m_n_2 <= m_n_max:
 			m_neutralino_2 = str(m_n_2)
 			
+			if m_n_2 < 300:
+				m_n_2_stepsize = 25
+			else:
+				m_n_2_stepsize = 50
+			
 			if m_b > m_n_2:
 				print "m_n: "+m_neutralino_2
 				
-				if not ((m_b == 775 and m_n_2 == 750) or (m_b == 800 and m_n_2 == 150)):
-					
-					denominator = denominatorHisto.GetBinContent(denominatorHisto.GetXaxis().FindBin(m_b),denominatorHisto.GetYaxis().FindBin(m_n_2))
-					
-					sampleName = "T6bbllslepton_msbottom_%s_mneutralino_%s"%(m_sbottom,m_neutralino_2)
-					fileName = "T6bbllslepton_msbottom_%s_mneutralino_%s"%(m_sbottom,m_neutralino_2)
-		
-					xsection = getattr(sbottom_masses, M_SBOTTOM).cross_section13TeV
-					
-					scalingLumi = lumi*xsection/denominator
+				denominator = denominatorHisto.GetBinContent(denominatorHisto.GetXaxis().FindBin(m_b),denominatorHisto.GetYaxis().FindBin(m_n_2))
+				
+				sampleName = "T6bbllslepton_msbottom_%s_mneutralino_%s"%(m_sbottom,m_neutralino_2)
+				fileName = "T6bbllslepton_msbottom_%s_mneutralino_%s"%(m_sbottom,m_neutralino_2)
 	
-					for etaRegion in etaRegions:
-						etaCut = etaCuts[etaRegion]
+				xsection = getattr(sbottom_masses, M_SBOTTOM).cross_section13TeV
+				
+				scalingLumi = lumi*xsection/denominator
+
+				for etaRegion in etaRegions:
+					etaCut = etaCuts[etaRegion]
+					
+					if etaRegion == "Barrel":
+						EETriggerEff = triggerEffs.central.effEE.val
+						EMuTriggerEff = triggerEffs.central.effEM.val
+						MuMuTriggerEff = triggerEffs.central.effMM.val
+						RSFOF = rSFOF.central.val
+					else:
+						EETriggerEff = triggerEffs.forward.effEE.val
+						EMuTriggerEff = triggerEffs.forward.effEM.val
+						MuMuTriggerEff = triggerEffs.forward.effMM.val
+						RSFOF = rSFOF.forward.val
+					
+					for mllRegion in mllRegions:
+						mllCut = mllCuts[mllRegion]
 						
-						if etaRegion == "Barrel":
-							EETriggerEff = triggerEffs.central.effEE.val
-							EMuTriggerEff = triggerEffs.central.effEM.val
-							MuMuTriggerEff = triggerEffs.central.effMM.val
-							RSFOF = rSFOF.central.val
-						else:
-							EETriggerEff = triggerEffs.forward.effEE.val
-							EMuTriggerEff = triggerEffs.forward.effEM.val
-							MuMuTriggerEff = triggerEffs.forward.effMM.val
-							RSFOF = rSFOF.forward.val
+						for bTagBin in bTagBins:
+							bTagCut = bTagCuts[bTagBin]	
+				
+				
+							suffix = etaRegion+"_"+mllRegion+"_"+bTagBin
+							cuts = "weight*leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*bTagWeight*(chargeProduct < 0 && pt1 > 20 && pt2 > 20 && %s && %s && %s && ((met > 100 && nJets >= 3) ||  (met > 150 && nJets >=2)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && deltaR > 0.3)"%(etaCut,mllCut,bTagCut)
+							unweightedCuts = "(chargeProduct < 0 && pt1 > 20 && pt2 > 20 && %s && %s && %s && ((met > 100 && nJets >= 3) ||  (met > 150 && nJets >=2)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && deltaR > 0.3)"%(etaCut,mllCut,bTagCut)
+
+							counts = {}
+							
+							for sample, tree in EEtrees.iteritems():
+								if sample == sampleName:
+									EEsignalYield = signalYields(tree,cuts) * EETriggerEff * scalingLumi
+									EEsignalEfficiency = EEsignalYield/ (lumi*xsection)
+									EEMCEvents = signalYields(tree,unweightedCuts)										
+									EEISRUp,EEISRDown = produceISRUncertainty(tree,cuts)									
+									EEJESUp,EEJESDown= produceJESUncertainty(tree,cuts)
+									EENoLeptonFastSimScaleFactor = produceLeptonFastSimUncertainty(tree,cuts)
+									EENoLeptonFullSimScaleFactor = produceLeptonFullSimUncertainty(tree,cuts)
+									EEPileupUp,EEPileupDown = producePileupUncertainty(tree,cuts)
+									EEBTagHeavy,EEBTagLight = produceBTagUncertainty(tree,cuts)
+									
+									counts = {}
+									counts["EE"] = {"EEval":EEsignalYield,"EEMCEvents":EEMCEvents,"EEsignalEfficiency":EEsignalEfficiency,
+									"EEJESUp":EEJESUp * EETriggerEff * scalingLumi,"EEJESDown":EEJESDown * EETriggerEff * scalingLumi,
+									"EENoLeptonFastSimScaleFactor":EENoLeptonFastSimScaleFactor * EETriggerEff * scalingLumi,
+									"EENoLeptonFullSimScaleFactor":EENoLeptonFullSimScaleFactor * EETriggerEff * scalingLumi,
+									"EEPileupUp":EEPileupUp * EETriggerEff * scalingLumi,"EEPileupDown":EEPileupDown * EETriggerEff * scalingLumi,
+									"EEISRUp":EEISRUp * EETriggerEff * scalingLumi,"EEISRDown":EEISRDown * EETriggerEff * scalingLumi,
+									"EEbTagHeavy":EEBTagHeavy * EETriggerEff * scalingLumi,"EEbTagLight":EEBTagLight * EETriggerEff * scalingLumi}
+									
+							
+							for sample, tree in EMutrees.iteritems():
+								if sample == sampleName:
+									EMusignalYield = signalYields(tree,cuts) * EMuTriggerEff * scalingLumi * RSFOF
+									EMusignalEfficiency = EMusignalYield/ (lumi*xsection)
+									EMuMCEvents = signalYields(tree,unweightedCuts)									
+									EMuISRUp,EMuISRDown = produceISRUncertainty(tree,cuts)									
+									EMuJESUp,EMuJESDown= produceJESUncertainty(tree,cuts)
+									EMuNoLeptonFastSimScaleFactor = produceLeptonFastSimUncertainty(tree,cuts)
+									EMuNoLeptonFullSimScaleFactor = produceLeptonFullSimUncertainty(tree,cuts)
+									EMuPileupUp,EMuPileupDown = producePileupUncertainty(tree,cuts)
+									EMuBTagHeavy,EMuBTagLight = produceBTagUncertainty(tree,cuts)
 						
-						for mllRegion in mllRegions:
-							mllCut = mllCuts[mllRegion]
+									counts["EMu"] = {"EMuval":EMusignalYield,"EMuMCEvents":EMuMCEvents,"EMusignalEfficiency":EMusignalEfficiency,
+									"EMuJESUp":EMuJESUp * EMuTriggerEff * scalingLumi * RSFOF,"EMuJESDown":EMuJESDown * EMuTriggerEff * scalingLumi * RSFOF,
+									"EMuNoLeptonFastSimScaleFactor":EMuNoLeptonFastSimScaleFactor * EMuTriggerEff * scalingLumi * RSFOF,
+									"EMuNoLeptonFullSimScaleFactor":EMuNoLeptonFullSimScaleFactor * EMuTriggerEff * scalingLumi * RSFOF,
+									"EMuPileupUp":EMuPileupUp * EMuTriggerEff * scalingLumi * RSFOF,"EMuPileupDown":EMuPileupDown * EMuTriggerEff * scalingLumi * RSFOF,
+									"EMuISRUp":EMuISRUp * EMuTriggerEff * scalingLumi * RSFOF,"EMuISRDown":EMuISRDown * EMuTriggerEff * scalingLumi * RSFOF,
+									"EMubTagHeavy":EMuBTagHeavy * EMuTriggerEff * scalingLumi * RSFOF,"EMubTagLight":EMuBTagLight * EMuTriggerEff * scalingLumi * RSFOF}
+				
 							
-							for bTagBin in bTagBins:
-								bTagCut = bTagCuts[bTagBin]	
-					
-					
-								suffix = etaRegion+"_"+mllRegion+"_"+bTagBin
-								cuts = "weight*leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*bTagWeight*(chargeProduct < 0 && pt1 > 20 && pt2 > 20 && %s && %s && %s && ((met > 100 && nJets >= 3) ||  (met > 150 && nJets >=2)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && deltaR > 0.3)"%(etaCut,mllCut,bTagCut)
-								unweightedCuts = "(chargeProduct < 0 && pt1 > 20 && pt2 > 20 && %s && %s && %s && ((met > 100 && nJets >= 3) ||  (met > 150 && nJets >=2)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && deltaR > 0.3)"%(etaCut,mllCut,bTagCut)
-	
-								counts = {}
-								
-								for sample, tree in EEtrees.iteritems():
-									if sample == sampleName:
-										EEsignalYield = signalYields(tree,cuts) * EETriggerEff * scalingLumi
-										EEsignalEfficiency = EEsignalYield/ (lumi*xsection)
-										EEMCEvents = signalYields(tree,unweightedCuts)										
-										EEISRUp,EEISRDown = produceISRUncertainty(tree,cuts)									
-										EEJESUp,EEJESDown= produceJESUncertainty(tree,cuts)
-										EENoLeptonFastSimScaleFactor = produceLeptonFastSimUncertainty(tree,cuts)
-										EENoLeptonFullSimScaleFactor = produceLeptonFullSimUncertainty(tree,cuts)
-										EEPileupUp,EEPileupDown = producePileupUncertainty(tree,cuts)
-										EEBTagHeavy,EEBTagLight = produceBTagUncertainty(tree,cuts)
-										
-										counts = {}
-										counts["EE"] = {"EEval":EEsignalYield,"EEMCEvents":EEMCEvents,"EEsignalEfficiency":EEsignalEfficiency,
-										"EEJESUp":EEJESUp * EETriggerEff * scalingLumi,"EEJESDown":EEJESDown * EETriggerEff * scalingLumi,
-										"EENoLeptonFastSimScaleFactor":EENoLeptonFastSimScaleFactor * EETriggerEff * scalingLumi,
-										"EENoLeptonFullSimScaleFactor":EENoLeptonFullSimScaleFactor * EETriggerEff * scalingLumi,
-										"EEPileupUp":EEPileupUp * EETriggerEff * scalingLumi,"EEPileupDown":EEPileupDown * EETriggerEff * scalingLumi,
-										"EEISRUp":EEISRUp * EETriggerEff * scalingLumi,"EEISRDown":EEISRDown * EETriggerEff * scalingLumi,
-										"EEbTagHeavy":EEBTagHeavy * EETriggerEff * scalingLumi,"EEbTagLight":EEBTagLight * EETriggerEff * scalingLumi}
-										
-								
-								for sample, tree in EMutrees.iteritems():
-									if sample == sampleName:
-										EMusignalYield = signalYields(tree,cuts) * EMuTriggerEff * scalingLumi * RSFOF
-										EMusignalEfficiency = EMusignalYield/ (lumi*xsection)
-										EMuMCEvents = signalYields(tree,unweightedCuts)									
-										EMuISRUp,EMuISRDown = produceISRUncertainty(tree,cuts)									
-										EMuJESUp,EMuJESDown= produceJESUncertainty(tree,cuts)
-										EMuNoLeptonFastSimScaleFactor = produceLeptonFastSimUncertainty(tree,cuts)
-										EMuNoLeptonFullSimScaleFactor = produceLeptonFullSimUncertainty(tree,cuts)
-										EMuPileupUp,EMuPileupDown = producePileupUncertainty(tree,cuts)
-										EMuBTagHeavy,EMuBTagLight = produceBTagUncertainty(tree,cuts)
-							
-										counts["EMu"] = {"EMuval":EMusignalYield,"EMuMCEvents":EMuMCEvents,"EMusignalEfficiency":EMusignalEfficiency,
-										"EMuJESUp":EMuJESUp * EMuTriggerEff * scalingLumi * RSFOF,"EMuJESDown":EMuJESDown * EMuTriggerEff * scalingLumi * RSFOF,
-										"EMuNoLeptonFastSimScaleFactor":EMuNoLeptonFastSimScaleFactor * EMuTriggerEff * scalingLumi * RSFOF,
-										"EMuNoLeptonFullSimScaleFactor":EMuNoLeptonFullSimScaleFactor * EMuTriggerEff * scalingLumi * RSFOF,
-										"EMuPileupUp":EMuPileupUp * EMuTriggerEff * scalingLumi * RSFOF,"EMuPileupDown":EMuPileupDown * EMuTriggerEff * scalingLumi * RSFOF,
-										"EMuISRUp":EMuISRUp * EMuTriggerEff * scalingLumi * RSFOF,"EMuISRDown":EMuISRDown * EMuTriggerEff * scalingLumi * RSFOF,
-										"EMubTagHeavy":EMuBTagHeavy * EMuTriggerEff * scalingLumi * RSFOF,"EMubTagLight":EMuBTagLight * EMuTriggerEff * scalingLumi * RSFOF}
-					
-								
-								for sample, tree in MuMutrees.iteritems():
-									if sample == sampleName:
-										MuMusignalYield = signalYields(tree,cuts) * MuMuTriggerEff * scalingLumi
-										MuMusignalEfficiency = MuMusignalYield/ (lumi*xsection)
-										MuMuMCEvents = signalYields(tree,unweightedCuts)										
-										MuMuISRUp,MuMuISRDown = produceISRUncertainty(tree,cuts)									
-										MuMuJESUp,MuMuJESDown= produceJESUncertainty(tree,cuts)
-										MuMuNoLeptonFastSimScaleFactor = produceLeptonFastSimUncertainty(tree,cuts)
-										MuMuNoLeptonFullSimScaleFactor = produceLeptonFullSimUncertainty(tree,cuts)
-										MuMuPileupUp,MuMuPileupDown = producePileupUncertainty(tree,cuts)
-										MuMuBTagHeavy,MuMuBTagLight = produceBTagUncertainty(tree,cuts)
-										
-										counts["MuMu"] = {"MuMuval":MuMusignalYield,"MuMuMCEvents":MuMuMCEvents,"MuMusignalEfficiency":MuMusignalEfficiency,
-										"MuMuJESUp":MuMuJESUp * MuMuTriggerEff * scalingLumi,"MuMuJESDown":MuMuJESDown * MuMuTriggerEff * scalingLumi,
-										"MuMuNoLeptonFastSimScaleFactor":MuMuNoLeptonFastSimScaleFactor * MuMuTriggerEff * scalingLumi,
-										"MuMuNoLeptonFullSimScaleFactor":MuMuNoLeptonFullSimScaleFactor * MuMuTriggerEff * scalingLumi,
-										"MuMuPileupUp":MuMuPileupUp * MuMuTriggerEff * scalingLumi,"MuMuPileupDown":MuMuPileupDown * MuMuTriggerEff * scalingLumi,
-										"MuMuISRUp":MuMuISRUp * MuMuTriggerEff * scalingLumi,"MuMuISRDown":MuMuISRDown * MuMuTriggerEff * scalingLumi,
-										"MuMubTagHeavy":MuMuBTagHeavy * MuMuTriggerEff * scalingLumi,"MuMubTagLight":MuMuBTagLight * MuMuTriggerEff * scalingLumi}
-										
-								outFilePkl = open("shelves/%s_%s.pkl"%(fileName,suffix),"w")
-								pickle.dump(counts, outFilePkl)
-								outFilePkl.close()
-										
+							for sample, tree in MuMutrees.iteritems():
+								if sample == sampleName:
+									MuMusignalYield = signalYields(tree,cuts) * MuMuTriggerEff * scalingLumi
+									MuMusignalEfficiency = MuMusignalYield/ (lumi*xsection)
+									MuMuMCEvents = signalYields(tree,unweightedCuts)										
+									MuMuISRUp,MuMuISRDown = produceISRUncertainty(tree,cuts)									
+									MuMuJESUp,MuMuJESDown= produceJESUncertainty(tree,cuts)
+									MuMuNoLeptonFastSimScaleFactor = produceLeptonFastSimUncertainty(tree,cuts)
+									MuMuNoLeptonFullSimScaleFactor = produceLeptonFullSimUncertainty(tree,cuts)
+									MuMuPileupUp,MuMuPileupDown = producePileupUncertainty(tree,cuts)
+									MuMuBTagHeavy,MuMuBTagLight = produceBTagUncertainty(tree,cuts)
+									
+									counts["MuMu"] = {"MuMuval":MuMusignalYield,"MuMuMCEvents":MuMuMCEvents,"MuMusignalEfficiency":MuMusignalEfficiency,
+									"MuMuJESUp":MuMuJESUp * MuMuTriggerEff * scalingLumi,"MuMuJESDown":MuMuJESDown * MuMuTriggerEff * scalingLumi,
+									"MuMuNoLeptonFastSimScaleFactor":MuMuNoLeptonFastSimScaleFactor * MuMuTriggerEff * scalingLumi,
+									"MuMuNoLeptonFullSimScaleFactor":MuMuNoLeptonFullSimScaleFactor * MuMuTriggerEff * scalingLumi,
+									"MuMuPileupUp":MuMuPileupUp * MuMuTriggerEff * scalingLumi,"MuMuPileupDown":MuMuPileupDown * MuMuTriggerEff * scalingLumi,
+									"MuMuISRUp":MuMuISRUp * MuMuTriggerEff * scalingLumi,"MuMuISRDown":MuMuISRDown * MuMuTriggerEff * scalingLumi,
+									"MuMubTagHeavy":MuMuBTagHeavy * MuMuTriggerEff * scalingLumi,"MuMubTagLight":MuMuBTagLight * MuMuTriggerEff * scalingLumi}
+									
+							outFilePkl = open("shelves/%s_%s.pkl"%(fileName,suffix),"w")
+							pickle.dump(counts, outFilePkl)
+							outFilePkl.close()
+									
 										
 								
 			
 		
-			m_n_2 += stepsize		
-		m_b += stepsize
+			m_n_2 += m_n_2_stepsize		
+		m_b += m_b_stepsize
 		
