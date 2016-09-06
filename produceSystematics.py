@@ -37,7 +37,7 @@ bTagCuts = {
 
 	
 def signalYields(tree,cuts):
-	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = float(histo.Integral(0,histo.GetNbinsX()+1))
 	histo.Delete()
 	return yields
@@ -46,12 +46,12 @@ def signalYields(tree,cuts):
 def producePileupUncertainty(tree,cuts):
 	
 	cuts = cuts.replace("weight*","weightUp*")
-	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = [float(histoUp.Integral())]
 	histoUp.Delete()
 	
 	cuts = cuts.replace("weightUp*","weightDown*")
-	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields.append(float(histoDown.Integral()))
 	histoDown.Delete()
 
@@ -61,13 +61,13 @@ def produceJESUncertainty(tree,cuts):
 
 	cuts = cuts.replace("nJets","nShiftedJetsJESUp")	
 	cuts = cuts.replace("met","metJESUp")	
-	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = [float(histoUp.Integral(0,histoUp.GetNbinsX()+1))]
 	histoUp.Delete()
 	
 	cuts = cuts.replace("nShiftedJetsJESUp","nShiftedJetsJESDown")	
 	cuts = cuts.replace("metJESUp","metJESDown")		
-	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields.append(float(histoDown.Integral(0,histoDown.GetNbinsX()+1)))
 	histoDown.Delete()
 	
@@ -77,12 +77,12 @@ def produceJESUncertainty(tree,cuts):
 def produceISRUncertainty(tree,cuts):
 		
 	cuts = "(1 + ISRUncertainty)*%s"%cuts
-	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = [float(histoUp.Integral(0,histoUp.GetNbinsX()+1))]
 	histoUp.Delete()
 
 	cuts.replace("(1 + ISRUncertainty)","(1 - ISRUncertainty)")
-	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields.append(float(histoDown.Integral(0,histoDown.GetNbinsX()+1)))
 	histoDown.Delete()
 	
@@ -92,7 +92,7 @@ def produceLeptonFastSimUncertainty(tree,cuts):
 	
 	result = 0.
 	cuts = cuts.replace("leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*","")
-	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	result = histo.Integral(0,histo.GetNbinsX()+1)
 	histo.Delete()
 	
@@ -102,7 +102,7 @@ def produceLeptonFullSimUncertainty(tree,cuts):
 	
 	result = 0.
 	cuts = cuts.replace("leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*","")
-	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	result = histo.Integral(0,histo.GetNbinsX()+1)
 	histo.Delete()
 	
@@ -111,12 +111,12 @@ def produceLeptonFullSimUncertainty(tree,cuts):
 def produceBTagUncertainty(tree,cuts):
 	
 	cuts = cuts.replace("bTagWeight","bTagWeight * (1 + bTagWeightErrHeavy)")
-	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = [float(histoUp.Integral(0,histoUp.GetNbinsX()+1))]
 	histoUp.Delete()
 	
 	cuts = cuts.replace("bTagWeight * (1 + bTagWeightErrHeavy)","bTagWeight * (1 + bTagWeightErrLight)")
-	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histoDown = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields.append(float(histoDown.Integral(0,histoDown.GetNbinsX()+1)))
 	histoDown.Delete()
 	

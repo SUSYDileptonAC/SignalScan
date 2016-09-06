@@ -39,7 +39,7 @@ bTagCuts = {
 
 	
 def signalYields(tree,cuts):
-	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500)
+	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = float(histo.Integral(1,histo.GetNbinsX()))
 	histo.Delete()
 	return yields
