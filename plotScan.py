@@ -1,5 +1,8 @@
 #! /usr/bin/env python
 
+### Tool to make maps for signal yields, efficiencies and statistical
+### and systematic uncertainties
+
 import ROOT
 import sys
 sys.path.append('cfg/')
@@ -13,7 +16,7 @@ from optparse import OptionParser
 
 ROOT.gROOT.SetBatch(True)
 
-
+### get the results from the pkl files
 def loadPickles(path):
 	from glob import glob
 	import pickle
@@ -32,6 +35,7 @@ def plot(systematics):
 	from defs import sbottom_masses
 	from math import sqrt
 	
+	### labels
 	latex = ROOT.TLatex()
 	latex.SetTextSize(0.03)
 	latex.SetNDC(True)
@@ -49,6 +53,7 @@ def plot(systematics):
 	latexCMSExtra.SetTextSize(0.03)
 	latexCMSExtra.SetNDC(True)
 	
+	### canvas, style and pad
 	canv = TCanvas("canv", "canv",1024,768)
 	plotPad = ROOT.TPad("plotPad","plotPad",0,0,1,1)
 	setTDRStyle()
@@ -74,25 +79,28 @@ def plot(systematics):
 	observables = ["mll"]
 	leptonCombinations = ["SF-OF"]
 	
+	### regions that go into the definition of signal bins
 	etaRegions = ["central","forward"]
 	massRegions = ["lowMass","belowZ","onZ","aboveZ","highMass"]
 	bTagRegions = ["noBTag","geOneBTag","inclusiveBTags"]
-	bTagRegionsExclusive = ["noBTag","geOneBTag"]
 	
 	regions = []
 	regionCombinations = []
 	regionCombinationsInclusive = []
 	
+	### combine for all 30 signal bins
 	for etaRegion in etaRegions:
 		for massRegion in massRegions:
 			for bTagRegion in bTagRegions:
 				regions.append("%s_%s_%s"%(etaRegion,massRegion,bTagRegion))
 	
 
+	### do not split into mass bins
 	for etaRegion in etaRegions:	
 		for bTagRegion in bTagRegions:
 			regionCombinations.append("%s_%s"%(etaRegion,bTagRegion))	
-			
+	
+	### do not split into eta bins		
 	for massRegion in massRegions:
 		for bTagRegion in bTagRegions:
 			regionCombinations.append("%s_%s"%(massRegion,bTagRegion))	
@@ -101,11 +109,14 @@ def plot(systematics):
 	Histograms = {}			
 	uncertaintyArrays = {}		
 	
+	### either consider all systematic uncertainties or only produce plots
+	### for the yields, efficiency and stat uncertainty
 	if systematics:			
 		uncertaintySources = ["Yield","StatUncertainty","SystUncertainty","TotalUncertainty","Efficiency","ISRUncertainty","pileupUncertainty","JESUncertainty","LeptonFullSimUncertainty","LeptonFastSimUncertainty","BTagUncertaintyLight","BTagUncertaintyHeavy",]
 	else:			
 		uncertaintySources = ["Yield","StatUncertainty","Efficiency"]
 	
+	### Arrays to put the values into
 	for uncertaintySource in uncertaintySources:	
 		for region in regions:
 			uncertaintyArrays["%s_%s"%(uncertaintySource,region)] = []
@@ -114,9 +125,11 @@ def plot(systematics):
 		for regionCombination in regionCombinations:
 			uncertaintyArrays["%s_%s"%(uncertaintySource,regionCombination)] = []
 
+	### arrays for the masses
 	masses_b = []
 	masses_n = []
 	
+	### mass range and binning
 	m_n_min = 150
 	m_n_max = 650
 	m_b_min = 450
@@ -126,18 +139,11 @@ def plot(systematics):
 	nxbins = int(min(500,(m_b_max-m_b_min)/bin_size))
 	nybins = int(min(500,(m_n_max-m_n_min)/bin_size))
 	
+	### constant uncertainties
 	TriggerEffUncertainty = 0.05
 	LumiUncertainty = 0.027
 	
-	m_n_min = 150
-	m_b_min = 450
-	m_b_max = 700
-	
-	
-	TriggerEffUncertainty = 0.05
-	PDFUncertainty = 0.0
-	LumiUncertainty = 0.027
-					
+	### loop over mass points				
 	m_b = m_b_min
 	m_b_stepsize = 25
 	while m_b <= m_b_max:
@@ -156,9 +162,9 @@ def plot(systematics):
 			else:
 				m_n_stepsize = 50
 				
-			#~ print m_n
 			m_neutralino_2 = str(m_n)
 			
+			### fill the mass arrays
 			masses_b.append(m_b)
 			masses_n.append(m_n)			
 
@@ -176,15 +182,18 @@ def plot(systematics):
 			Uncertainties = {}		
 			
 			
-			for region in regions:	
+			for region in regions:
+				### get the pickles	
 				Pickles["%s_%s"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
 				
+				### get the yields
 				Yields["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEval"]
 				Yields["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuval"]
 				Yields["MuMu_%s"%region] =  Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuval"]
 				Yields["SFOF_%s"%region] = Yields["EE_%s"%region] + Yields["MuMu_%s"%region] - Yields["EMu_%s"%region]
 				Uncertainties["Yield_%s"%region] = max(Yields["SFOF_%s"%region],0)
 				
+				### Use the MC events to determine the statistical uncertainty
 				MCEvents["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEMCEvents"]
 				MCEvents["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuMCEvents"]
 				MCEvents["MuMu_%s"%region] =  Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuMCEvents"]
@@ -198,27 +207,28 @@ def plot(systematics):
 				
 				Uncertainties["Efficiency_%s"%region] = Yields["SFOF_%s"%region]/(xsection*lumi)
 				
+				### Produce the individual systematics
 				if systematics:
 				
-					### JES Uncertainty
+					### JES Uncertainty, determined by shifting JES up/down and comparing to the default yield
 					JES["JESUp_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEJESUp"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuJESUp"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuJESUp"] 
 					JES["JESDown_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEJESDown"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuJESDown"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuJESDown"] 			
 					
-					### Lepton FastSim Uncertainty					
+					### Lepton FastSim Uncertainty, determined using the difference to the yields when no scale factors are applied					
 					LeptonFastSim["NoLeptonFastSimScaleFactors_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EENoLeptonFastSimScaleFactor"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuNoLeptonFastSimScaleFactor"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuNoLeptonFastSimScaleFactor"] 
 										
-					### Lepton FullSim Uncertainty
+					### Lepton FullSim Uncertainty, determined using the difference to the yields when no scale factors are applied
 					LeptonFullSim["NoLeptonFullSimScaleFactors_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EENoLeptonFullSimScaleFactor"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuNoLeptonFullSimScaleFactor"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuNoLeptonFullSimScaleFactor"] 
 					
-					###  Pileup Uncertainty
+					###  Pileup Uncertainty, pileup weights produced using total cross section shifted up/down by 5%, compare the yields
 					Pileup["PileupUp_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEPileupUp"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuPileupUp"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuPileupUp"] 
 					Pileup["PileupDown_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEPileupDown"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuPileupDown"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuPileupDown"] 
 										
-					### ISR Uncertainty
+					### ISR Uncertainty, 0, 15, and 30% ISR uncertainty depending on the pt of the disbottom system are assumed and yields shifted by this uncertainty
 					ISR["ISRUp_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEISRUp"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuISRUp"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuISRUp"]  
 					ISR["ISRDown_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEISRDown"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuISRDown"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuISRDown"]  
 													
-					### BTag Uncertainty
+					### BTag Uncertainty, uncertainty on heavy/light flavor b-tagging.
 					BTag["BTagHeavy_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEbTagHeavy"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMubTagHeavy"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMubTagHeavy"]  
 					
 					BTag["BTagLight_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EE"]["EEbTagLight"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMubTagLight"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["EMu"]["EMubTagLight"]  
@@ -252,7 +262,7 @@ def plot(systematics):
 					
 									
 						
-					
+			### do the same for combinations of signal regions		
 			for regionCombination in regionCombinations:
 				
 				region1, region2 = regionCombination.split('_')
@@ -355,7 +365,7 @@ def plot(systematics):
 				for uncertainty in uncertaintySources:
 					uncertaintyArrays["%s_%s"%(uncertainty,regionCombination)].append(Uncertainties["%s_%s"%(uncertainty,regionCombination)])
 					
-								
+			### only divide into b-tag regions					
 			for bTagRegion in bTagRegions:
 				
 
@@ -466,6 +476,7 @@ def plot(systematics):
 				
 	for region in regions:
 		
+		### create graphs and histograms from the arrays
 		for uncertainty in uncertaintySources:
 			Graphs["%s_%s"%(uncertainty,region)]=TGraph2D("Graph_%s_%s"%(uncertainty,region),"%s_%s"%(uncertainty,region), len(uncertaintyArrays["%s_%s"%(uncertainty,region)]), array('d',masses_b), array('d',masses_n), array('d',uncertaintyArrays["%s_%s"%(uncertainty,region)]))
 			Graphs["%s_%s"%(uncertainty,region)].SetNpx(nxbins)
@@ -473,6 +484,7 @@ def plot(systematics):
 			Histograms["%s_%s"%(uncertainty,region)] = Graphs["%s_%s"%(uncertainty,region)].GetHistogram()
 			Histograms["%s_%s"%(uncertainty,region)].SetTitle(";m_{#tilde{b}} [GeV]; m_{#tilde{#chi_{2}^{0}}} [GeV]")
 		
+		### labels
 		if "central" in region:
 			region_label = "Central Signal Region"
 		elif "forward" in region:
@@ -497,6 +509,7 @@ def plot(systematics):
 			region_label_2 += ", #geq 1 b-tag"		
 
 
+		### produce the plots
 		plotPad.SetLogz()
 		Histograms["Yield_%s"%region].SetZTitle("SF-OF yield")
 		Histograms["Yield_%s"%region].Draw("colz")
@@ -558,7 +571,7 @@ def plot(systematics):
 					canv.Update()
 					canv.Print("fig/%s/T6bbllslepton_%s_%s.pdf"%(uncertainty,region,uncertainty))
 				
-				
+	### same for combinations 			
 	for regionCombination in regionCombinations:
 		
 		for uncertainty in uncertaintySources:
@@ -663,7 +676,8 @@ def plot(systematics):
 					latex.DrawLatex(0.175, 0.75, "#splitline{Simplified Model}{#splitline{T6bbslepton, m(#tilde{#chi}_{1}^{0})=100 GeV}{#splitline{"+regionCombination_label+"}{"+regionCombination_label_2+"}}}")
 					canv.Update()
 					canv.Print("fig/%s/T6bbllslepton_%s_%s.pdf"%(uncertainty,regionCombination,uncertainty))
-															
+	
+	### same for bTag regions														
 	for bTagRegion in bTagRegions:
 		
 		for uncertainty in uncertaintySources:
@@ -790,19 +804,11 @@ def waitForInput():
 # entry point
 #-------------
 if (__name__ == "__main__"):
-    # use option parser to allow verbose mode
     parser = OptionParser()
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
-                                  help="talk about everything")
     parser.add_option("-s", "--systematics", dest="systematics", action="store_true", default=False,
                                   help="plot maps for systematic uncertainties")
     (opts, args) = parser.parse_args()
-    if (opts.verbose):
-        # print out all output
-        log.outputLevel = 5
-    else:
-        # ignore output with "debug" level
-        log.outputLevel = 4
+
 
     # start
     plot(opts.systematics)

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+### Combine the 5 datacards (one for each mass region) produced via
+### writeDataCards.py for each mass point
+### A CMSSW environment with the HiggsCombine tool needs to be sourced
+
 MASSCOMBINATIONS="$(< massCombinations.txt)" #names from names.txt file
 for MASSCOMBINATION in $MASSCOMBINATIONS; do
 	echo $MASSCOMBINATION

@@ -1,8 +1,11 @@
 #!/bin/bash
 
+### Script to produce the limits
+### Needs a CMSSW environment with HiggsCombine tool to be sourced
+
 EXE=combine
 
-
+### get the masses and x-sections from a txt file and loop over them
 COMBINATIONS="$(< ../massXSectionCombinations.txt)" #names from names.txt file
 for COMBINATION in $COMBINATIONS; do
 	SBOTTOM=$(echo $COMBINATION| cut -d'_' -f 1)
@@ -11,6 +14,7 @@ for COMBINATION in $COMBINATIONS; do
 	echo $SBOTTOM
 	echo $NEUTRALINO
 	MODEL="T6bbllslepton_${SBOTTOM}_${NEUTRALINO}"
+	### get the data card
 	#~ DATACARD="../combinedDataCardsFlatSystematics/${MODEL}.txt"
 	DATACARD="../combinedDataCards/${MODEL}.txt"
 	RESULT="$MODEL.result.txt"
@@ -33,9 +37,11 @@ for COMBINATION in $COMBINATIONS; do
 	echo " Xsection = $XSECTION" >> $RESULT
 
 
-	#Calculate asymptotic CLs x-section limits
+	#Calculate asymptotic CLs x-section limits, write output into a log
 	echo "$EXE -M Asymptotic $DATACARD > $LOG_ASYMPTOTIC"
 	$EXE -M Asymptotic $DATACARD > $LOG_ASYMPTOTIC
+	
+	### get the observed/expected limits from the output log
 	OBSas=`grep "Observed Limit: r <" $LOG_ASYMPTOTIC | cut -b 21-`
 	EXPas=`grep "Expected 50.0%: r <" $LOG_ASYMPTOTIC | cut -b 21-`
 	EXPm2as=`grep "Expected  2.5%: r <" $LOG_ASYMPTOTIC | cut -b 21-`
@@ -43,6 +49,7 @@ for COMBINATION in $COMBINATIONS; do
 	EXPp1as=`grep "Expected 84.0%: r <" $LOG_ASYMPTOTIC | cut -b 21-`
 	EXPp2as=`grep "Expected 97.5%: r <" $LOG_ASYMPTOTIC | cut -b 21-`
 	
+	### put them into a result file
 	echo "CLs observed asymptotic = $OBSas" >> $RESULT
 	echo "CLs expected asymptotic = $EXPas" >> $RESULT
 	echo "CLs expected m2sigma asymptotic = $EXPm2as" >> $RESULT

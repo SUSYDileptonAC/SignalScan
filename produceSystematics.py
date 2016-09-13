@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+### Tool to get the yields and systematics for each mass point
+
 import sys
 sys.path.append('cfg/')
 from frameworkStructure import pathes
@@ -14,7 +16,7 @@ from locations import locations
 from corrections import triggerEffs, rSFOF
 from helpers import readTrees, totalNumberOfGeneratedEvents,createHistoFromTree
 
-
+### dictionaries for the different cuts that are combined for the signal regions
 etaCuts = {
 			"central":"abs(eta1) < 1.4 && abs(eta2) < 1.4",
 			"forward":"(((abs(eta1) < 1.4 || abs(eta1) > 1.6) && (abs(eta2) < 1.4 || abs(eta2) > 1.6)) && 1.6 <= TMath::Max(abs(eta1),abs(eta2)))",
@@ -36,14 +38,15 @@ bTagCuts = {
 			"geOneBTag":"nBJets > 0",
 			}
 
-	
+### get the actual yields	
 def signalYields(tree,cuts):
 	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = float(histo.Integral(0,histo.GetNbinsX()+1))
 	histo.Delete()
 	return yields
 	
-
+### Use different pileup weights (produced using a total cross section that
+### was shifted up/down by 5%), estimate the yields with the shifted weights
 def producePileupUncertainty(tree,cuts):
 	
 	cuts = cuts.replace("weight*","weightUp*")
@@ -57,7 +60,8 @@ def producePileupUncertainty(tree,cuts):
 	histoDown.Delete()
 
 	return yields[0],yields[1]	
-	
+
+### JES uncertainty in MET and Jets shifted up/down. Get the yields with the shifted JES
 def produceJESUncertainty(tree,cuts):
 
 	cuts = cuts.replace("nJets","nShiftedJetsJESUp")	
@@ -74,9 +78,9 @@ def produceJESUncertainty(tree,cuts):
 	
 	return yields[0],yields[1]
 
-			
+### 0, 15, 30% ISR uncertainty assumed depending on the pt of the di-sbottom system
+### Reweight each event by (1+/- ISR uncertainty of the event) and get the yields	
 def produceISRUncertainty(tree,cuts):
-		
 	cuts = "(1 + ISRUncertainty)*%s"%cuts
 	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = [float(histoUp.Integral(0,histoUp.GetNbinsX()+1))]
@@ -88,9 +92,9 @@ def produceISRUncertainty(tree,cuts):
 	histoDown.Delete()
 	
 	return yields[0],yields[1]
-			
+
+### Get yields without FastSim scale factors			
 def produceLeptonFastSimUncertainty(tree,cuts):
-	
 	result = 0.
 	cuts = cuts.replace("leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*","")
 	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
@@ -98,9 +102,9 @@ def produceLeptonFastSimUncertainty(tree,cuts):
 	histo.Delete()
 	
 	return result
-	
-def produceLeptonFullSimUncertainty(tree,cuts):
-	
+
+### Get yields without FullSim scale factors	
+def produceLeptonFullSimUncertainty(tree,cuts):	
 	result = 0.
 	cuts = cuts.replace("leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*","")
 	histo = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
@@ -108,9 +112,10 @@ def produceLeptonFullSimUncertainty(tree,cuts):
 	histo.Delete()
 	
 	return result
-	
-def produceBTagUncertainty(tree,cuts):
-	
+
+### Use b-tag weights that are shifted up by the uncertainty on heavy/light flavor
+### take heavy and light flavor as uncorrelated	
+def produceBTagUncertainty(tree,cuts):	
 	cuts = cuts.replace("bTagWeight","bTagWeight * (1 + bTagWeightErrHeavy)")
 	histoUp = createHistoFromTree(tree, "p4.M()", cuts, 50, 0, 500,verbose=False)
 	yields = [float(histoUp.Integral(0,histoUp.GetNbinsX()+1))]
@@ -127,13 +132,16 @@ def produceBTagUncertainty(tree,cuts):
 		
 if (__name__ == "__main__"):
 	
+	### histogram for the normalization
 	denominatorFile = TFile("T6bbllsleptonDenominatorHisto.root")
 	denominatorHisto = TH2F(denominatorFile.Get("massScan"))
 
+	### lumi and constant uncertainties
 	lumi = 2260
 	triggerEffUncertainty = 0.05
 	lumiUncertainty = 0.027
-		
+	
+	### mass range	
 	m_b_max = 700
 	m_b_min = 450
 	m_n_max = 650
@@ -142,6 +150,7 @@ if (__name__ == "__main__"):
 		
 	path = locations.dataSetPath
 	
+	### regions that go into the signal bins
 	etaRegions = ["central","forward"]
 	mllRegions = ["lowMass","belowZ","onZ","aboveZ","highMass"]
 	bTagBins = ["inclusiveBTags","noBTag","geOneBTag"]
@@ -150,6 +159,7 @@ if (__name__ == "__main__"):
 	EEtrees = readTrees(path, "EE")	
 	MuMutrees = readTrees(path, "MuMu")	
 	
+	### loop over mass points
 	m_b = m_b_min
 	m_b_stepsize = 25	
 	while m_b <= m_b_max:
@@ -169,6 +179,7 @@ if (__name__ == "__main__"):
 			if m_b > m_n_2:
 				print "m_n: "+m_neutralino_2
 				
+				### normalize
 				denominator = denominatorHisto.GetBinContent(denominatorHisto.GetXaxis().FindBin(m_b),denominatorHisto.GetYaxis().FindBin(m_n_2))
 				
 				sampleName = "T6bbllslepton_msbottom_%s_mneutralino_%s"%(m_sbottom,m_neutralino_2)
@@ -177,20 +188,17 @@ if (__name__ == "__main__"):
 				xsection = getattr(sbottom_masses, M_SBOTTOM).cross_section13TeV
 				
 				scalingLumi = lumi*xsection/denominator
+				
+				### loop over eta, mass and b-tag bins
 
 				for etaRegion in etaRegions:
 					etaCut = etaCuts[etaRegion]
 					
-					if etaRegion == "Barrel":
-						EETriggerEff = triggerEffs.central.effEE.val
-						EMuTriggerEff = triggerEffs.central.effEM.val
-						MuMuTriggerEff = triggerEffs.central.effMM.val
-						RSFOF = rSFOF.central.val
-					else:
-						EETriggerEff = triggerEffs.forward.effEE.val
-						EMuTriggerEff = triggerEffs.forward.effEM.val
-						MuMuTriggerEff = triggerEffs.forward.effMM.val
-						RSFOF = rSFOF.forward.val
+					
+					EETriggerEff = getattr(triggerEffs,etaRegion).effEE.val
+					EMuTriggerEff = getattr(triggerEffs,etaRegion).effEM.val
+					MuMuTriggerEff = getattr(triggerEffs,etaRegion).effMM.val
+					RSFOF = getattr(rSFOF,etaRegion).val
 					
 					for mllRegion in mllRegions:
 						mllCut = mllCuts[mllRegion]
@@ -199,12 +207,14 @@ if (__name__ == "__main__"):
 							bTagCut = bTagCuts[bTagBin]	
 				
 				
+							### adapt the cuts and names
 							suffix = etaRegion+"_"+mllRegion+"_"+bTagBin
 							cuts = "weight*leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*bTagWeight*(chargeProduct < 0 && pt1 > 20 && pt2 > 20 && %s && %s && %s && ((met > 100 && nJets >= 3) ||  (met > 150 && nJets >=2)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && deltaR > 0.3)"%(etaCut,mllCut,bTagCut)
 							unweightedCuts = "(chargeProduct < 0 && pt1 > 20 && pt2 > 20 && %s && %s && %s && ((met > 100 && nJets >= 3) ||  (met > 150 && nJets >=2)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && deltaR > 0.3)"%(etaCut,mllCut,bTagCut)
 
 							counts = {}
 							
+							### get the different yields for the mass point and dilepton combination and store them
 							for sample, tree in EEtrees.iteritems():
 								if sample == sampleName:
 									EEsignalYield = signalYields(tree,cuts) * EETriggerEff * scalingLumi
@@ -217,7 +227,6 @@ if (__name__ == "__main__"):
 									EEPileupUp,EEPileupDown = producePileupUncertainty(tree,cuts)
 									EEBTagHeavy,EEBTagLight = produceBTagUncertainty(tree,cuts)
 									
-									counts = {}
 									counts["EE"] = {"EEval":EEsignalYield,"EEMCEvents":EEMCEvents,"EEsignalEfficiency":EEsignalEfficiency,
 									"EEJESUp":EEJESUp * EETriggerEff * scalingLumi,"EEJESDown":EEJESDown * EETriggerEff * scalingLumi,
 									"EENoLeptonFastSimScaleFactor":EENoLeptonFastSimScaleFactor * EETriggerEff * scalingLumi,

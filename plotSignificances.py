@@ -11,6 +11,7 @@ ROOT.gROOT.SetBatch(True)
 
 from array import *
 
+### Tool to make significance plots
 def plot():
 	import re
 	import ratios
@@ -20,6 +21,7 @@ def plot():
 	from defs import sbottom_masses
 	from math import sqrt
 	
+	### define canvas, pad and style
 	canv = TCanvas("canv", "canv",800,800)
 	plotPad = ROOT.TPad("plotPad","plotPad",0,0,1,1)
 	style=setTDRStyle()	
@@ -33,18 +35,18 @@ def plot():
 	
 	printLumi = "12.9"
 	
+	### mass range
 	m_n_min = 150
 	m_n_max = 750
 	m_b_min = 450
 	m_b_max = 700
 	
-	PDFAndScaleUncert = 0.15
-	
-		
+	### arrays to store masses and results	
 	masses_b = []
 	masses_n = []
 	significances = []
-		
+	
+	### loop over mass points	
 	m_b = m_b_min
 	m_b_stepsize = 25
 	while m_b <= m_b_max:			
@@ -57,12 +59,13 @@ def plot():
 			else:
 				m_n_stepsize = 50			
 			
-			#~ print "Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n))
+			### fetch significance files
 			limitFile = open("Significances/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
 			masses_b.append(m_b)
 			masses_n.append(m_n)
 			M_SBOTTOM = "m_b_"+str(m_b)
 			
+			### get the observed significance
 			for line in limitFile:
 				
 				if "observed significance" in line:
@@ -72,28 +75,30 @@ def plot():
 					
 			m_n += m_n_stepsize		
 		m_b += m_bstepsize
-		
+	
+	### binning	
 	bin_size =12.5
 	nxbins = int(min(500,(m_b_max-m_b_min)/bin_size))
 	nybins = int(min(500,(m_n_max-m_n_min)/bin_size))
 	
+	### Additional input to shift the maximum of the y-axis up
 	masses_b.append(700)
 	masses_n.append(750)
 	
 	significances.append(0.)
 	
-	
+	### Graph from the arrays
 	Graph = TGraph2D("Graph_significance","Significance", len(significances), array('d',masses_b), array('d',masses_n), array('d',significances))
 	Graph.SetNpx(nxbins)
 	Graph.SetNpy(nybins)
 	
 	
-	
+	### Get the histogram
 	Histogram = Graph.GetHistogram()
 	Histogram.SetTitle(";m_{#tilde{b}} [GeV]; m_{#tilde{#chi_{2}^{0}}} [GeV]")
 	Histogram.GetZaxis().SetRangeUser(0.,2.)
 	
-	
+	### label styles
 	latex = ROOT.TLatex()
 	latex.SetTextSize(0.03)
 	latex.SetNDC(True)
@@ -115,6 +120,7 @@ def plot():
 	latexLegendHeader.SetTextSize(0.025)
 	latexLegendHeader.SetNDC(True)
 	
+	### Overlay to make diagonal look nicer
 	Overlay = ROOT.TGraph(0)
 	Overlay.SetPoint(0, 450, 315)
 	Overlay.SetPoint(1, 700, 640)
@@ -122,9 +128,9 @@ def plot():
 	Overlay.SetPoint(3, 450, 415)
 	Overlay.SetFillColor(0)
 	
-	oneLine = ROOT.TLine(450, 425, 700, 650)
-	oneLine.SetLineStyle(9)
-	oneLine.SetLineWidth(2)
+	### Somehow the legend content does not stick to the defined legend size
+	### Thus we are using two legends, a larger one for the frame
+	### and a smaller one with the actual content
 	
 	leg1 = ROOT.TLegend(0.18,0.80,0.83,0.92)
 	leg1.SetBorderSize(1)
@@ -135,11 +141,13 @@ def plot():
 	leg.SetBorderSize(0)
 	leg.SetLineWidth(0)
 	
+	### set margins around the plot to improve the style
 	plotPad.SetTopMargin(0.08)
 	plotPad.SetBottomMargin(0.16)
 	plotPad.SetLeftMargin(0.18)
 	plotPad.SetRightMargin(0.17)
 	
+	### Draw the histogram
 	Histogram.GetYaxis().SetTitleOffset(1.3)
 	Histogram.SetZTitle("observed significance (#sigma)")
 	Histogram.GetZaxis().SetLabelSize(0.035)
@@ -147,7 +155,7 @@ def plot():
 	Histogram.Draw("COLZ")
 	Overlay.Draw("f")
 	
-	
+	### add labels and save the plot
 	latexLumi.DrawLatex(0.83, 0.94, "%s fb^{-1} (13 TeV)"%(printLumi))
 	latexCMS.DrawLatex(0.18,0.94,"CMS")
 	latexCMSExtra.DrawLatex(0.285,0.94,"Preliminary")
@@ -159,7 +167,7 @@ def plot():
 	canv.Print("fig/Significances.pdf")
 	
 	
-	
+	### save the results in a root file
 	Histogram.SetName("ObsSignificance")
 	
 	Graph.SetName("ObsSignificance")

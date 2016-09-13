@@ -11,6 +11,7 @@ ROOT.gROOT.SetBatch(True)
 
 from array import *
 
+### Tool to make limit plots
 def plot():
 	import re
 	import ratios
@@ -20,6 +21,7 @@ def plot():
 	from defs import sbottom_masses
 	from math import sqrt
 	
+	### define canvas, pad and style
 	canv = TCanvas("canv", "canv",800,800)
 	plotPad = ROOT.TPad("plotPad","plotPad",0,0,1,1)
 	style=setTDRStyle()	
@@ -28,12 +30,14 @@ def plot():
 	plotPad.Draw()	
 	plotPad.cd()
 	
+	### The different contours used: observed +/- 1 sigma, expected +/- 1 sigma and the x-section limit
 	exclusionContours = ["obsR","obsR_up","obsR_down","expR","expR_up","expR_down","obsXsecLimit"]
 	Graphs = {}
 	Histograms = {}
 	
 	printLumi = "2.3"
 	
+	### mass range
 	m_n_min = 150
 	m_n_max = 650
 	m_b_min = 450
@@ -41,8 +45,12 @@ def plot():
 	
 	m_b_stepsize = 25
 	
+	### Assume 15% theoretical uncertainty. In reasonable agreement with
+	### https://twiki.cern.ch./twiki/bin/view/LHCPhysics/SUSYCrossSections13TeVstopsbottom
+	### where the cross sections were taken from
 	PDFAndScaleUncert = 0.15
 	
+	### store the masses and exclusion values for each point
 	Exclusions = {}	
 	
 	for exclusionContour in exclusionContours:
@@ -51,7 +59,8 @@ def plot():
 	masses_b = []
 	masses_n = []
 	cross_sections = []
-		
+	
+	### loop over mass points	
 	m_b = m_b_min
 	while m_b <= m_b_max:
 			
@@ -64,14 +73,17 @@ def plot():
 			else:
 				m_n_stepsize = 50
 			
-			#~ print "Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n))
+			### fetch the limit files
 			limitFile = open("Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
+			
+			### store masses and cross sections
 			masses_b.append(m_b)
 			masses_n.append(m_n)
 			M_SBOTTOM = "m_b_"+str(m_b)
 			xSection = getattr(sbottom_masses, M_SBOTTOM).cross_section13TeV
 			cross_sections.append(xSection)
 			
+			### fetch the different results
 			for line in limitFile:
 				
 				if "CLs observed asymptotic" in line:
@@ -95,24 +107,28 @@ def plot():
 				
 			m_n += m_n_stepsize		
 		m_b += m_b_stepsize
-		
+	
+	### binning for the plot	
 	bin_size =12.5
 	nxbins = int(min(500,(m_b_max-m_b_min)/bin_size))
 	nybins = int(min(500,(m_n_max-m_n_min)/bin_size))
 	
+	### create 2D graphs from the arrays of masses and r-values
 	for exclusionContour in exclusionContours:
 		Graphs[exclusionContour] = TGraph2D("Graph_%s"%(exclusionContour),exclusionContour, len(Exclusions[exclusionContour]), array('d',masses_b), array('d',masses_n), array('d',Exclusions[exclusionContour]))
 		Graphs[exclusionContour].SetNpx(nxbins)
 		Graphs[exclusionContour].SetNpy(nybins)
 	
-	dots = TGraph(len(masses_b), array('d',masses_b), array('d',masses_n))
-	
+	### set contour to be plotted. Distinguish points with r < 1 (excluded)
+	### and r > 1 (not excluded)	
 	contours = array('d',[1.0])
 	
+	### clolor coded histogram for the observed x-section limit
 	Histograms["obsXsecLimit"] = Graphs["obsXsecLimit"].GetHistogram()
 	Histograms["obsXsecLimit"].SetTitle(";m_{#tilde{b}} [GeV]; m_{#tilde{#chi_{2}^{0}}} [GeV]")
 	Histograms["obsXsecLimit"].GetZaxis().SetRangeUser(0.1,1.)
-		
+	
+	### exclusion contours	
 	Histograms["expR"] = Graphs["expR"].GetHistogram()	
 	Histograms["expR"].SetContour(1,contours)
 	Histograms["expR"].SetLineWidth(4)
@@ -156,7 +172,7 @@ def plot():
 	Histograms["obsR_down"].Smooth()
 	
 	
-	
+	### labels
 	latex = ROOT.TLatex()
 	latex.SetTextSize(0.03)
 	latex.SetNDC(True)
@@ -178,6 +194,7 @@ def plot():
 	latexLegendHeader.SetTextSize(0.025)
 	latexLegendHeader.SetNDC(True)
 	
+	### Triangular overlay to make the diagonal look nicer
 	Overlay = ROOT.TGraph(0)
 	Overlay.SetPoint(0, 450, 415)
 	Overlay.SetPoint(1, 700, 640)
@@ -185,9 +202,9 @@ def plot():
 	Overlay.SetPoint(3, 450, 415)
 	Overlay.SetFillColor(0)
 	
-	oneLine = ROOT.TLine(450, 425, 700, 650)
-	oneLine.SetLineStyle(9)
-	oneLine.SetLineWidth(2)
+	### Somehow the legend content does not stick to the defined legend size
+	### Thus we are using two legends, a larger one for the frame
+	### and a smaller one with the actual content
 	
 	leg1 = ROOT.TLegend(0.18,0.72,0.83,0.92)
 	leg1.SetBorderSize(1)
@@ -200,11 +217,13 @@ def plot():
 	leg.AddEntry(Histograms["expR"], "Expected limit, #pm 1 #sigma_{exp.}","l")
 	leg.AddEntry(Histograms["obsR"], "Observed limit, #pm 1 #sigma_{theory}","l")
 	
+	### set margins around the plot to improve the style
 	plotPad.SetTopMargin(0.08)
 	plotPad.SetBottomMargin(0.16)
 	plotPad.SetLeftMargin(0.18)
 	plotPad.SetRightMargin(0.17)
 	
+	### Draw the histograms
 	plotPad.SetLogz()
 	Histograms["obsXsecLimit"].GetYaxis().SetTitleOffset(1.3)
 	Histograms["obsXsecLimit"].SetZTitle("95% CL upper limit on #sigma [pb]")
@@ -230,14 +249,10 @@ def plot():
 	canv.Print("fig/LimitPlot.pdf")
 	
 	
-	
+	### Write observed x -section histogram and graphs with the exclusion
+	### limits into a root file. In this way other people can use
+	### the limits more easily
 	Histograms["obsXsecLimit"].SetName("XSecUpperLimit")
-	Histograms["expR"].SetName("ExpectedUpperLimit")
-	Histograms["expR_up"].SetName("ExpectedUpperLimitUp")
-	Histograms["expR_down"].SetName("ExpectedUpperLimitDown")
-	Histograms["obsR"].SetName("ObservedUpperLimit")
-	Histograms["obsR_up"].SetName("ObservedUpperLimitUp")
-	Histograms["obsR_down"].SetName("ObservedUpperLimitDown")
 	
 	Graphs["expR"].SetName("ExpectedUpperLimit")
 	Graphs["expR_up"].SetName("ExpectedUpperLimitUp")

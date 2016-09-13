@@ -1,5 +1,8 @@
 #!/bin/bash
 
+### script to be run once after checking out the github repository
+### to create all necessary folders
+
 mkdir combinedDataCards
 mkdir combinedDataCardsFlatSystematics
 mkdir DataCards
