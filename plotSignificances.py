@@ -74,18 +74,12 @@ def plot():
 					significances.append(significance)
 					
 			m_n += m_n_stepsize		
-		m_b += m_bstepsize
+		m_b += m_b_stepsize
 	
 	### binning	
 	bin_size =12.5
 	nxbins = int(min(500,(m_b_max-m_b_min)/bin_size))
 	nybins = int(min(500,(m_n_max-m_n_min)/bin_size))
-	
-	### Additional input to shift the maximum of the y-axis up
-	masses_b.append(700)
-	masses_n.append(750)
-	
-	significances.append(0.)
 	
 	### Graph from the arrays
 	Graph = TGraph2D("Graph_significance","Significance", len(significances), array('d',masses_b), array('d',masses_n), array('d',significances))
@@ -96,7 +90,7 @@ def plot():
 	### Get the histogram
 	Histogram = Graph.GetHistogram()
 	Histogram.SetTitle(";m_{#tilde{b}} [GeV]; m_{#tilde{#chi_{2}^{0}}} [GeV]")
-	Histogram.GetZaxis().SetRangeUser(0.,2.)
+	Histogram.GetZaxis().SetRangeUser(-1.,2.)
 	
 	### label styles
 	latex = ROOT.TLatex()
