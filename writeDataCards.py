@@ -74,7 +74,7 @@ def getResults(shelve,region,selection):
 	result["lowMassPredSystErrSF"] = result["lowMassOF"]*getattr(rSFOF,region).err
 	### DY prediction
 	result["lowMassZPredSF"] = getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.lowMass,region).val
-	result["lowMassZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.lowMass,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err*getattr(rOutIn.lowMass,region).val)**2 )**0.5
+	result["lowMassZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.lowMass,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err/result["lowMassZPredSF"]*getattr(rOutIn.lowMass,region).val)**2 )**0.5
 	
 
 	###below Z
@@ -86,7 +86,7 @@ def getResults(shelve,region,selection):
 	result["belowZPredSystErrSF"] = result["belowZOF"]*getattr(rSFOF,region).err
 	
 	result["belowZZPredSF"] = getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.belowZ,region).val
-	result["belowZZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.belowZ,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err*getattr(rOutIn.belowZ,region).val)**2 )**0.5
+	result["belowZZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.belowZ,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err/result["belowZZPredSF"]*getattr(rOutIn.belowZ,region).val)**2 )**0.5
 	
 	### above Z
 	result["aboveZSF"] = shelve[region][selection]["aboveZ"]["EE"] + shelve[region][selection]["aboveZ"]["MM"]
@@ -97,7 +97,7 @@ def getResults(shelve,region,selection):
 	result["aboveZPredSystErrSF"] = result["aboveZOF"]*getattr(rSFOF,region).err
 	
 	result["aboveZZPredSF"] = getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.aboveZ,region).val
-	result["aboveZZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.aboveZ,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err*getattr(rOutIn.aboveZ,region).val)**2 )**0.5
+	result["aboveZZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.aboveZ,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err/result["aboveZZPredSF"]*getattr(rOutIn.aboveZ,region).val)**2 )**0.5
 	
 	### high mass
 	result["highMassSF"] = shelve[region][selection]["highMass"]["EE"] + shelve[region][selection]["highMass"]["MM"]
@@ -108,7 +108,7 @@ def getResults(shelve,region,selection):
 	result["highMassPredSystErrSF"] = result["highMassOF"]*getattr(rSFOF,region).err
 	
 	result["highMassZPredSF"] = getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.highMass,region).val
-	result["highMassZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.highMass,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err*getattr(rOutIn.highMass,region).val)**2 )**0.5
+	result["highMassZPredErrSF"] = ((getattr(getattr(zPredictions,selection).SF,region).val*getattr(rOutIn.highMass,region).err)**2 + (getattr(getattr(zPredictions,selection).SF,region).err/result["highMassZPredSF"]*getattr(rOutIn.highMass,region).val)**2 )**0.5
 	
 	### on Z: No rOutIn required
 	result["onZSF"] = shelve[region][selection]["zMass"]["EE"] + shelve[region][selection]["zMass"]["MM"]
@@ -119,7 +119,7 @@ def getResults(shelve,region,selection):
 	result["onZPredSystErrSF"] = result["onZOF"]*getattr(rSFOF,region).err
 	
 	result["onZZPredSF"] = getattr(getattr(zPredictions,selection).SF,region).val
-	result["onZZPredErrSF"] = getattr(getattr(zPredictions,selection).SF,region).err
+	result["onZZPredErrSF"] = getattr(getattr(zPredictions,selection).SF,region).err/result["onZZPredSF"]
 	
 	return result
 
