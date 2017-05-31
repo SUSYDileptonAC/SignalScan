@@ -11,7 +11,7 @@ for COMBINATION in $COMBINATIONS; do
 	echo $SBOTTOM
 	echo $NEUTRALINO
 	MODEL="T6bbllslepton_${SBOTTOM}_${NEUTRALINO}"
-	DATACARD="../DataCards/${MODEL}.txt"
+	DATACARD="../combinedDataCards/${MODEL}.txt"
 	RESULT="$MODEL.result.txt"
 	LOG_ASYMPTOTIC='asymptotic.log'
 
@@ -42,9 +42,6 @@ for COMBINATION in $COMBINATIONS; do
 	EXPp1as=`grep "Expected 84.0%: r <" $LOG_ASYMPTOTIC | cut -b 21-`
 	EXPp2as=`grep "Expected 97.5%: r <" $LOG_ASYMPTOTIC | cut -b 21-`
 	
-
-	echo " R_firstguess = $OBSas" >> $RESULT
-	echo "" >> $RESULT
 	echo "CLs observed asymptotic = $OBSas" >> $RESULT
 	echo "CLs expected asymptotic = $EXPas" >> $RESULT
 	echo "CLs expected m2sigma asymptotic = $EXPm2as" >> $RESULT

@@ -1,94 +1,207 @@
 #! /usr/bin/env python
 
+### Tool to write datacards from the yields and systematic uncertainties
+### determined before
+
 import ROOT
+import os
+import pickle
+
+import sys
+sys.path.append("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase")
+from messageLogger import messageLogger as log
+from ROOT import TCanvas, TPad, TH1F, TH2F, TH1I, THStack, TLegend, TMath, TF1
+import pickle
+from defs import sbottom_masses, getRunRange,theCuts
+from math import sqrt
+
+from corrections import rSFOFDirect,rSFOFTrig, rOutIn
+from centralConfig import zPredictions, regionsToUse, runRanges,OnlyZPredictions
 
 
 from optparse import OptionParser
 
 
+def readPickle(name,regionName,runName,MC=False):
+	
+	if MC:
+		if os.path.isfile("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s_MC.pkl"%(name,regionName,runName)):
+			result = pickle.load(open("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/%s_%s_%s_MC.pkl"%(name,regionName,runName),"rb"))
+		else:
+			print "/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl not found, exiting"%(name,regionName,runName) 		
+			sys.exit()		
+	else:
+		if os.path.isfile("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl"%(name,regionName,runName)):
+			result = pickle.load(open("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl"%(name,regionName,runName),"rb"))
+		else:
+			print "/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl not found, exiting"%(name,regionName,runName) 		
+			sys.exit()
+
+	return result
+
+
+### load pickles for the systematics
 def loadPickles(path):
 	from glob import glob
-	import pickle
 	result = {}
 	for pklPath in glob(path):
 		pklFile = open(pklPath, "r")
 		result.update(pickle.load(pklFile))
 	return result
 	
+def getWeightedAverage(val1,err1,val2,err2):
+	
+	weightedAverage = (val1/(err1**2) +val2/(err2**2))/(1./err1**2+1./err2**2)
+	weightedAverageErr = 1./(1./err1**2+1./err2**2)**0.5
+	
+	return weightedAverage, weightedAverageErr
+	
+
+### get the results and predictions from the counting experiment in all mass regions
+def getResults(shelvesNll,shelvesOnZ):
+	
+	
+	NLLRegions = ["lowNLL","highNLL"]
+	massRegions = ["20To60","60To86","96To150","150To200","200To300","300To400","Above400"]	
+	MT2Regions = ["highMT2"]
+	result = {}
+	
+	region = "inclusive"
+	
+	#~ result["rSFOF"] = getattr(rSFOF,region).val
+	#~ result["rSFOFErr"] = getattr(rSFOF,region).err
+	result["rSFOFDirect"] = getattr(rSFOFDirect,region).val
+	result["rSFOFDirectErr"] = getattr(rSFOFDirect,region).err
+	result["rSFOFTrig"] = getattr(rSFOFTrig,region).val
+	result["rSFOFTrigErr"] = getattr(rSFOFTrig,region).err
+	#~ result["rEEOF"] = getattr(rEEOF,region).val
+	#~ result["rEEOFErr"] = getattr(rEEOF,region).err
+	#~ result["rMMOF"] = getattr(rMMOF,region).val
+	#~ result["rMMOFErr"] = getattr(rMMOF,region).err
+	
+	#~ result["onZPrediction_highNLL"] = shelvesOnZ["86To96_highNll_highMT2_SF"] - shelvesOnZ["86To96_highNll_highMT2_OF"]
+	#~ result["onZPrediction_lowNLL"] = shelvesOnZ["86To96_lowNll_highMT2_SF"]	- shelvesOnZ["86To96_lowNll_highMT2_OF"]
+	
+	result["onZPrediction_highNLL"] = OnlyZPredictions.MT2.SF.highNLL.val
+	result["onZPrediction_lowNLL"] = OnlyZPredictions.MT2.SF.lowNLL.val
+	result["onZPrediction_highNLL_Err"] = OnlyZPredictions.MT2.SF.highNLL.err
+	result["onZPrediction_lowNLL_Err"] = OnlyZPredictions.MT2.SF.lowNLL.err				
+	
+	
+	for selection in NLLRegions:
+		result[selection] = {}
+		for MT2Region in MT2Regions:
+			for massRegion in massRegions:
+				if massRegion == "Above400":
+					massRegionLabel = "mass400"
+				else:
+					massRegionLabel = "mass"+massRegion
+			
+				result[selection]["%s_%s_EE"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["EE"]
+				result[selection]["%s_%s_MM"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["MM"]
+				result[selection]["%s_%s_SF"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["EE"] + shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["MM"]
+				result[selection]["%s_%s_OF"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["EM"]
+				result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["EMRMuEScaled"]
+				result[selection]["%s_%s_OFRMuEScaledUp"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["EMRMuEScaledUp"]
+				result[selection]["%s_%s_OFRMuEScaledDown"%(MT2Region,massRegion)] = shelvesNll[selection][getattr(theCuts.mt2Cuts,MT2Region).name+"_"+getattr(theCuts.massCuts,massRegionLabel).name]["EMRMuEScaledDown"]
+				
+				result[selection]["%s_%s_PredFactSF"%(MT2Region,massRegion)] = result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)]*getattr(rSFOFTrig,region).val
+				if result[selection]["%s_%s_OF"%(MT2Region,massRegion)] > 0:
+					result[selection]["%s_%s_PredFactStatErrSF"%(MT2Region,massRegion)] = result[selection]["%s_%s_OF"%(MT2Region,massRegion)]**0.5*result[selection]["%s_%s_PredFactSF"%(MT2Region,massRegion)]/result[selection]["%s_%s_OF"%(MT2Region,massRegion)]
+					result[selection]["%s_%s_PredFactSystErrSF"%(MT2Region,massRegion)] = result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)]*(getattr(rSFOFTrig,region).err**2 + max(abs(result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)] - result[selection]["%s_%s_OFRMuEScaledUp"%(MT2Region,massRegion)])/result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)],abs(result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)] - result[selection]["%s_%s_OFRMuEScaledDown"%(MT2Region,massRegion)])/result[selection]["%s_%s_OFRMuEScaled"%(MT2Region,massRegion)])**2)**0.5		
+				else:
+					result[selection]["%s_%s_PredFactStatErrSF"%(MT2Region,massRegion)] = 1.8
+					result[selection]["%s_%s_PredFactSystErrSF"%(MT2Region,massRegion)] = 0
+				
+				if result[selection]["%s_%s_OF"%(MT2Region,massRegion)] > 0:
+					result[selection]["%s_%s_RSFOF_Fact"%(MT2Region,massRegion)] = result[selection]["%s_%s_PredFactSF"%(MT2Region,massRegion)] / result[selection]["%s_%s_OF"%(MT2Region,massRegion)]
+					result[selection]["%s_%s_RSFOF_Fact_Err"%(MT2Region,massRegion)] = result[selection]["%s_%s_PredFactSystErrSF"%(MT2Region,massRegion)] / result[selection]["%s_%s_OF"%(MT2Region,massRegion)]
+				else:
+					result[selection]["%s_%s_RSFOF_Fact"%(MT2Region,massRegion)] = 0.
+					result[selection]["%s_%s_RSFOF_Fact_Err"%(MT2Region,massRegion)] = 0.
+				
+				if result[selection]["%s_%s_OF"%(MT2Region,massRegion)] > 0:
+					result[selection]["%s_%s_RSFOF_Combined"%(MT2Region,massRegion)],result[selection]["%s_%s_RSFOF_Combined_Err"%(MT2Region,massRegion)] = getWeightedAverage(result[selection]["%s_%s_RSFOF_Fact"%(MT2Region,massRegion)],result[selection]["%s_%s_RSFOF_Fact_Err"%(MT2Region,massRegion)],getattr(rSFOFDirect,region).val,getattr(rSFOFDirect,region).err)
+				else:
+					result[selection]["%s_%s_RSFOF_Combined"%(MT2Region,massRegion)] = getattr(rSFOFDirect,region).val
+					result[selection]["%s_%s_RSFOF_Combined_Err"%(MT2Region,massRegion)] = getattr(rSFOFDirect,region).err
+				
+				result[selection]["%s_%s_PredSF"%(MT2Region,massRegion)] = result[selection]["%s_%s_OF"%(MT2Region,massRegion)]*result[selection]["%s_%s_RSFOF_Combined"%(MT2Region,massRegion)]
+				if result[selection]["%s_%s_OF"%(MT2Region,massRegion)] > 0:
+					result[selection]["%s_%s_PredStatErrSF"%(MT2Region,massRegion)] = result[selection]["%s_%s_OF"%(MT2Region,massRegion)]**0.5*result[selection]["%s_%s_RSFOF_Combined"%(MT2Region,massRegion)]
+				else:
+					result[selection]["%s_%s_PredStatErrSF"%(MT2Region,massRegion)] = 1.8
+				result[selection]["%s_%s_PredSystErrSF"%(MT2Region,massRegion)] = result[selection]["%s_%s_OF"%(MT2Region,massRegion)]*result[selection]["%s_%s_RSFOF_Combined_Err"%(MT2Region,massRegion)]
+				
+				#~ 
+				result[selection]["%s_%s_ZPredSF"%(MT2Region,massRegion)] = result["onZPrediction_%s"%selection]*getattr(getattr(rOutIn,massRegionLabel),region).val
+				result[selection]["%s_%s_ZPredErrSF"%(MT2Region,massRegion)] = ((result["onZPrediction_%s"%selection]*getattr(getattr(rOutIn,massRegionLabel),region).err)**2 + result["onZPrediction_%s"%selection] * getattr(getattr(rOutIn,massRegionLabel),region).val**2 )**0.5
+				
+				result[selection]["%s_%s_RarePredSF"%(MT2Region,massRegion)] = shelvesOnZ["%s_%s_SF"%(massRegionLabel,selection)] - shelvesOnZ["%s_%s_OF"%(massRegionLabel,selection)]
+				result[selection]["%s_%s_RarePredSF_Up"%(MT2Region,massRegion)] = shelvesOnZ["%s_%s_SF_Up"%(massRegionLabel,selection)] - shelvesOnZ["%s_%s_OF_Up"%(massRegionLabel,selection)]
+				result[selection]["%s_%s_RarePredSF_Down"%(MT2Region,massRegion)] = shelvesOnZ["%s_%s_SF_Down"%(massRegionLabel,selection)] - shelvesOnZ["%s_%s_OF_Down"%(massRegionLabel,selection)]
+				result[selection]["%s_%s_RarePredErrSF"%(MT2Region,massRegion)] = max(abs(result[selection]["%s_%s_RarePredSF_Up"%(MT2Region,massRegion)]-result[selection]["%s_%s_RarePredSF"%(MT2Region,massRegion)]),abs(result[selection]["%s_%s_RarePredSF_Down"%(MT2Region,massRegion)]-result[selection]["%s_%s_RarePredSF"%(MT2Region,massRegion)]))
+		
+	
+	
+	return result
+	
+
 			   
-def writeDataCards():
-	import sys
-	sys.path.append('cfg/')
-	from frameworkStructure import pathes
-	sys.path.append(pathes.basePath)
+def writeDataCards(systematics):
 	from messageLogger import messageLogger as log
 	from ROOT import TCanvas, TPad, TH1F, TH2F, TH1I, THStack, TLegend, TMath, TF1
 	import pickle
 	from defs import sbottom_masses
 	from math import sqrt
+		
+	runRange = getRunRange(runRanges.name)
+	lumi = runRange.lumi
 
-	
-	path = "shelves"
+	path = "shelvesSystematics"	
 	
 	generalSignalLabel = "T6bbllslepton"
 	
-	LowMassLowNll = {}
-	LowMassHighNll = {}
-	HighMassLowNll = {}
-	HighMassHighNll = {}
+	OnZPickle = loadPickles("shelvesMT2/RareOnZ_Powheg.pkl")
 	
-	rSFOFInclusive = 1.091
-	rSFOFInclusiveUnc = 0.023
+	countingShelves= {"NLL":readPickle("cutAndCountNLL",regionsToUse.signal.inclusive.name , runRanges.name),"onZ":OnZPickle}
 	
-	LowMassLowNll["observation"] = 1417
-	LowMassLowNll["TTBar"] = 1260
-	LowMassLowNll["TTBarUncertainty"] = 0.028
-	LowMassLowNll["DY"] = 8.0
-	LowMassLowNll["DYUncertainty"] = 0.4
-	
-	LowMassHighNll["observation"] = 135
-	LowMassHighNll["TTBar"] = 97
-	LowMassHighNll["TTBarUncertainty"] = 0.095
-	LowMassHighNll["DY"] = 4.3
-	LowMassHighNll["DYUncertainty"] = 0.40
-	
-	HighMassLowNll["observation"] = 2347
-	HighMassLowNll["TTBar"] = 2233
-	HighMassLowNll["TTBarUncertainty"] = 0.021
-	HighMassLowNll["DY"] = 4.5
-	HighMassLowNll["DYUncertainty"] = 0.4
-	
-	HighMassHighNll["observation"] = 285
-	HighMassHighNll["TTBar"] = 191
-	HighMassHighNll["TTBarUncertainty"] = 0.072
-	HighMassHighNll["DY"] = 2.4
-	HighMassHighNll["DYUncertainty"] = 0.42
+	### get the results from the pkls
+	results = getResults(countingShelves["NLL"],countingShelves["onZ"])
+	#~ results = getResults(countingShelves["NLL"])
 	
 	
+	#~ massRegions = ["LowMass","ZMass","HighMass100To200","HighMass200To400","HighMassHighAbove400"]
+	#~ nLLRegions = ["lowNll","highNll"]
+	#~ MT2Regions = ["lowMT2","highMT2"]
+	massRegions = ["20To60","60To86","96To150","150To200","200To300","300To400","Above400"]
+	nLLRegions = ["lowNll","highNll"]
+	MT2Regions = ["highMT2"]
 	
-	regions = ["LowMassLowNll","LowMassHighNll","HighMassLowNll","HighMassHighNll"]
+	signalBins = []
+
+	
+	for massRegion in massRegions:
+		for nLLRegion in nLLRegions:
+			for MT2Region in MT2Regions:
+				signalBins.append("%s_%s_%s"%(massRegion,nLLRegion,MT2Region))
 	
 	
 
+	### mass range
 	m_n_min = 150
-	m_b_min = 500
-	m_b_max = 950
-	
-	
-	TriggerEffUncertainty = 0.05
-	PDFUncertainty = 0.
-	LumiUncertainty = 0.062
-	ElectronUncertainty = 0.05
-	MuonUncertainty = 0.01
-				
-	
-	m_b = m_b_min	
+	m_b_min = 700
+	m_b_max = 1600
+		
+	TriggerEffUncertainty = 0.03
+	LumiUncertainty = 0.026
+	FastSimUncertainty = 0.04
+						
+	### loop over mass points
+	m_b = m_b_min
+	stepsize = 25	
 	while m_b <= m_b_max:
 		print m_b
-		if m_b < 800:
-			stepsize = 25
-		else:
-			stepsize = 50
 		
 		M_SBOTTOM = "m_b_"+str(m_b)
 		m_sbottom = str(m_b)
@@ -97,190 +210,223 @@ def writeDataCards():
 		m_n = m_n_min
 		
 		while m_n < m_b:
-			#~ print m_n
+			
+			if m_b < 800:
+				stepsize = 25
+			else:
+				stepsize = 50
+	
 			m_neutralino_2 = str(m_n)
-			
-			if not ((m_b == 775 and m_n == 750) or (m_b == 800 and m_n == 150) or (m_b == 950 and m_n == 900) or (m_b == 950 and m_n == 850) or (m_b == 950 and m_n == 550) or (m_b == 950 and m_n == 500) or (m_b == 950 and m_n == 300) or (m_b == 950 and m_n == 250)):
 		
-			
 
-				Pickles = {}
-				Yields = {}
-				MCEvents = {}
-				statUncertainties = {}
-				systUncertainties = {}
-				JES = {}
-				LeptonFastSim = {}
-				LeptonFullSim = {}
-				Pileup = {}
-				ISR= {}			
-				BTag= {}			
-				Met= {}			
+			Pickles = {}
+			Yields = {}
+			MCEvents = {}
+			statUncertainties = {}
+			systUncertainties = {}
+			JES = {}
+			LeptonFastSim = {}
+			LeptonFullSim = {}
+			Pileup = {}
+			ISR= {}				
+			Met= {}	
+			BTag= {}	
+			ScaleShift= {}	
+						
+			
+			### get the yields and uncertainties for each region
+			for region in signalBins:
+				### get the pickles	
+				Pickles["%s_%s"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2))
+				
+				### get the yields				
+				Yields["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["Val"]
+				Yields["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["Val"]
+				Yields["MuMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["Val"]
+				Yields["SFOF_%s"%region] = Yields["EE_%s"%region] + Yields["MuMu_%s"%region] - Yields["EMu_%s"%region]
+				Yields["SFOF_%s"%region] = max(Yields["SFOF_%s"%region],0)
+				
+				MCEvents["EE_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["MCEvents"]
+				MCEvents["EMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["MCEvents"]
+				MCEvents["MuMu_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["MCEvents"]
+				MCEvents["SFOF_%s"%region] = MCEvents["EE_%s"%region] + MCEvents["MuMu_%s"%region] - MCEvents["EMu_%s"%region]
+				MCEvents["SFOF_%s"%region] = max(MCEvents["SFOF_%s"%region],0)
+				
+				if MCEvents["SFOF_%s"%region] > 0:
+					statUncertainties["SFOF_%s"%region] = sqrt(MCEvents["EE_%s"%region]+MCEvents["EMu_%s"%region]+MCEvents["MuMu_%s"%region])/MCEvents["SFOF_%s"%region]
+				else:
+					statUncertainties["SFOF_%s"%region] = 0
+					
+				### JES Uncertainty
+				JES["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["JESMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["JESMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["JESMean"] 
+				
+				JES["JESUp_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["JESUp"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["JESUp"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["JESUp"] 
+				JES["JESDown_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["JESDown"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["JESDown"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["JESDown"] 
+				
+				if JES["Mean_%s"%region] > 0:
+					systUncertainties["JESUncertainty_%s"%region] = max(abs(JES["JESUp_%s"%region]-JES["Mean_%s"%region])/JES["Mean_%s"%region],abs(JES["JESDown_%s"%region]-JES["Mean_%s"%region])/JES["Mean_%s"%region])
+				else:
+					systUncertainties["JESUncertainty_%s"%region] = 0
 				
 				
-				for region in regions:
+				
+				### Lepton FastSim Uncertainty
+				
+				LeptonFastSim["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["LeptonFastSimMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["LeptonFastSimMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["LeptonFastSimMean"] 
+				LeptonFastSim["MeanShifted_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["LeptonFastSimMean"] * (1+FastSimUncertainty) + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["LeptonFastSimMean"]*(1+FastSimUncertainty)  - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["LeptonFastSimMean"]*(1+FastSimUncertainty)  
+				
+				if LeptonFastSim["Mean_%s"%region] > 0:
+					systUncertainties["LeptonFastSimUncertainty_%s"%region] = abs(LeptonFastSim["MeanShifted_%s"%region]-LeptonFastSim["Mean_%s"%region])/LeptonFastSim["Mean_%s"%region]
+				else:
+					systUncertainties["LeptonFastSimUncertainty_%s"%region] = 0
 					
-					Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s_EE.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
-					Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s_EMu.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
-					Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)] = loadPickles("%s/%s_msbottom_%s_mneutralino_%s_%s_MuMu.pkl"%(path,generalSignalLabel,m_sbottom,m_neutralino_2,region))
+				### Lepton FullSim Uncertainty
+				
+				LeptonFullSim["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["LeptonFullSimMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["LeptonFullSimMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["LeptonFullSimMean"] 
+				LeptonFullSim["MeanShifted_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["LeptonFullSimScaleFactorShifted"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["LeptonFullSimScaleFactorShifted"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["LeptonFullSimScaleFactorShifted"] 
+				
+				if LeptonFullSim["Mean_%s"%region] > 0:
+					systUncertainties["LeptonFullSimUncertainty_%s"%region] = abs(LeptonFullSim["MeanShifted_%s"%region]-LeptonFullSim["Mean_%s"%region])/LeptonFullSim["Mean_%s"%region]
+				else:
+					systUncertainties["LeptonFullSimUncertainty_%s"%region] = 0
+				
+				#~ systUncertainties["LeptonFullSimUncertainty_%s"%region] = 0.07
 					
-					Yields["EE_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEval"]
-					Yields["EMu_%s"%region] = Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuval"]
-					Yields["MuMu_%s"%region] =  Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuval"]
-					Yields["SFOF_%s"%region] = Yields["EE_%s"%region] + Yields["MuMu_%s"%region] - Yields["EMu_%s"%region]
-					Yields["SFOF_%s"%region] = max(Yields["SFOF_%s"%region],0)
+				
+				###  Pileup Uncertainty
+				Pileup["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["PileupMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["PileupMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["PileupMean"] 
+				
+				Pileup["PileupHigh_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["PileupHigh"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["PileupHigh"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["PileupHigh"] 
+				Pileup["PileupLow_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["PileupLow"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["PileupLow"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["PileupLow"] 
+				
+				if Pileup["Mean_%s"%region] > 0:
+					systUncertainties["PileupUncertainty_%s"%region] = max(abs(Pileup["PileupHigh_%s"%region]-Pileup["Mean_%s"%region])/Pileup["Mean_%s"%region],abs(Pileup["PileupLow_%s"%region] -Pileup["Mean_%s"%region])/Pileup["Mean_%s"%region] )
+				else:
+					systUncertainties["PileupUncertainty_%s"%region] = 0
 					
-					MCEvents["EE_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEMCEvents"]
-					MCEvents["EMu_%s"%region] = Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuMCEvents"]
-					MCEvents["MuMu_%s"%region] =  Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuMCEvents"]
-					MCEvents["SFOF_%s"%region] = MCEvents["EE_%s"%region] + MCEvents["MuMu_%s"%region] - MCEvents["EMu_%s"%region]
-					MCEvents["SFOF_%s"%region] = max(MCEvents["SFOF_%s"%region],0)
+				systUncertainties["PileupUncertainty_%s"%region] = 0.02
+				
+				### ISR Uncertainty
+				ISR["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["ISRMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["ISRMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["ISRMean"] 
+				
+				ISR["ISRUp_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["ISRUp"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["ISRUp"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["ISRUp"]  
+				ISR["ISRDown_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["ISRDown"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["ISRDown"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["ISRDown"]  
+				
+				if ISR["Mean_%s"%region] > 0:
+					systUncertainties["ISRUncertainty_%s"%region] = max(abs(ISR["ISRUp_%s"%region]-ISR["Mean_%s"%region])/ISR["Mean_%s"%region],abs(ISR["ISRDown_%s"%region]-ISR["Mean_%s"%region])/ISR["Mean_%s"%region])
+				else:
+					systUncertainties["ISRUncertainty_%s"%region] = 0
 					
-					if MCEvents["SFOF_%s"%region] > 0:
-						statUncertainties["SFOF_%s"%region] = sqrt(MCEvents["EE_%s"%region]+MCEvents["EMu_%s"%region]+MCEvents["MuMu_%s"%region])/MCEvents["SFOF_%s"%region]
-					else:
-						statUncertainties["SFOF_%s"%region] = 0
+				### BTag Uncertainty
+				BTag["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["BTagMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["BTagMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["BTagMean"] 
+				
+				if BTag["Mean_%s"%region] > 0:
+					BTag["BTagHeavy_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["BTagHeavy"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["BTagHeavy"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["BTagHeavy"]  
+					BTag["BTagLight_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["BTagLight"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["BTagLight"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["BTagLight"]  
+				
+					systUncertainties["BTagHeavyUncertainty_%s"%region] = abs(BTag["BTagHeavy_%s"%region]-BTag["Mean_%s"%region])/BTag["Mean_%s"%region]
+					systUncertainties["BTagLightUncertainty_%s"%region] = abs(BTag["BTagLight_%s"%region]-BTag["Mean_%s"%region])/BTag["Mean_%s"%region]	
+				else:
+					systUncertainties["BTagHeavyUncertainty_%s"%region] = 0
+					systUncertainties["BTagLightUncertainty_%s"%region] = 0
 					
+				### FastSim Met Uncertainty					
+				Met["Met_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["Met"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["Met"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["Met"]  
+				Met["GenMet_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["GenMet"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["GenMet"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["GenMet"]  
+				
+				if Yields["SFOF_%s"%region] > 0:
+					systUncertainties["MetUncertainty_%s"%region] = 0.5*abs(Met["Met_%s"%region]-Met["GenMet_%s"%region])/Yields["SFOF_%s"%region]
+				else:
+					systUncertainties["MetUncertainty_%s"%region] = 0
 					
-					### JES Uncertainty
-					JES["Mean_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEJESMean"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuJESMean"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuJESMean"] 
+				### Trigger eff uncertainty
+				if Yields["SFOF_%s"%region] > 0:
+					systUncertainties["TriggerEffUncertainty_%s"%region] = sqrt((Yields["EE_%s"%region]*TriggerEffUncertainty)**2 + (Yields["MuMu_%s"%region]*TriggerEffUncertainty)**2 + (Yields["EMu_%s"%region]*TriggerEffUncertainty)**2)/Yields["SFOF_%s"%region]
+				else:
+					systUncertainties["TriggerEffUncertainty_%s"%region] = 0
 					
-					JES["JESUp_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEJESUp"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuJESUp"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuJESUp"] 
-					JES["JESDown_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEJESDown"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuJESDown"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuJESDown"] 
+				### Scale uncertainty
+				systUncertainties["ScaleUncertainty_%s"%region] = 0
+				if BTag["Mean_%s"%region] > 0:
 					
-					if JES["Mean_%s"%region] > 0:
-						systUncertainties["JESUncertainty_%s"%region] = max(abs(JES["JESUp_%s"%region]-JES["Mean_%s"%region])/JES["Mean_%s"%region],abs(JES["JESDown_%s"%region]-JES["Mean_%s"%region])/JES["Mean_%s"%region])
-					else:
-						systUncertainties["JESUncertainty_%s"%region] = 0
-					
-					
-					
-					### Lepton FastSim Uncertainty
-					
-					LeptonFastSim["Mean_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EELeptonFastSimMean"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuLeptonFastSimMean"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuLeptonFastSimMean"] 
-					LeptonFastSim["MeanUnscaled_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EELeptonNoFastSimScaleFactor"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuLeptonNoFastSimScaleFactor"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuLeptonNoFastSimScaleFactor"] 
-					
-					if LeptonFastSim["Mean_%s"%region] > 0:
-						systUncertainties["LeptonFastSimUncertainty_%s"%region] = abs(LeptonFastSim["MeanUnscaled_%s"%region]-LeptonFastSim["Mean_%s"%region])/LeptonFastSim["Mean_%s"%region]
-					else:
-						systUncertainties["LeptonFastSimUncertainty_%s"%region] = 0
-						
-					### Lepton FullSim Uncertainty
-					
-					LeptonFullSim["Mean_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EELeptonFullSimMean"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuLeptonFullSimMean"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuLeptonFullSimMean"] 
-					LeptonFullSim["MeanUnscaled_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EELeptonNoFullSimScaleFactor"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuLeptonNoFullSimScaleFactor"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuLeptonNoFullSimScaleFactor"] 
-					
-					if LeptonFullSim["Mean_%s"%region] > 0:
-						systUncertainties["LeptonFullSimUncertainty_%s"%region] = abs(LeptonFullSim["MeanUnscaled_%s"%region]-LeptonFullSim["Mean_%s"%region])/LeptonFullSim["Mean_%s"%region]
-					else:
-						systUncertainties["LeptonFullSimUncertainty_%s"%region] = 0
-					
-					systUncertainties["LeptonFullSimUncertainty_%s"%region] = 0.07
-						
-					
-					###  Pileup Uncertainty
-					Pileup["Mean_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEPileupMean"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuPileupMean"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuPileupMean"] 
-					
-					Pileup["PileupUp_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEPileupUp"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuPileupUp"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuPileupUp"] 
-					Pileup["PileupDown_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEPileupDown"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuPileupDown"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuPileupDown"] 
-					
-					if Pileup["Mean_%s"%region] > 0:
-						systUncertainties["pileupUncertainty_%s"%region] = max(abs(Pileup["PileupUp_%s"%region]-Pileup["Mean_%s"%region])/Pileup["Mean_%s"%region],abs(Pileup["PileupDown_%s"%region] -Pileup["Mean_%s"%region])/Pileup["Mean_%s"%region] )
-					else:
-						systUncertainties["pileupUncertainty_%s"%region] = 0
-					
-					### ISR Uncertainty
-					ISR["Mean_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEISRMean"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuISRMean"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuISRMean"] 
-					
-					ISR["ISRUp_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEISRUp"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuISRUp"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuISRUp"]  
-					ISR["ISRDown_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEISRDown"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuISRDown"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuISRDown"]  
-					
-					if ISR["Mean_%s"%region] > 0:
-						systUncertainties["ISRUncertainty_%s"%region] = max(abs(ISR["ISRUp_%s"%region]-ISR["Mean_%s"%region])/ISR["Mean_%s"%region],abs(ISR["ISRDown_%s"%region]-ISR["Mean_%s"%region])/ISR["Mean_%s"%region])
-					else:
-						systUncertainties["ISRUncertainty_%s"%region] = 0
-						
-					### BTag Uncertainty
-					BTag["Mean_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEISRMean"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuISRMean"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuISRMean"] 
-					
-					BTag["BTagHeavy_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEbTagHeavy"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMubTagHeavy"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMubTagHeavy"]  
-					BTag["BTagLight_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEbTagLight"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMubTagLight"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMubTagLight"]  
-					
-					if BTag["Mean_%s"%region] > 0:
-						systUncertainties["BTagHeavyUncertainty_%s"%region] = abs(BTag["BTagHeavy_%s"%region]-BTag["Mean_%s"%region])/BTag["Mean_%s"%region]
-						systUncertainties["BTagLightUncertainty_%s"%region] = abs(BTag["BTagLight_%s"%region]-BTag["Mean_%s"%region])/BTag["Mean_%s"%region]	
-					else:
-						systUncertainties["BTagHeavyUncertainty_%s"%region] = 0
-						systUncertainties["BTagLightUncertainty_%s"%region] = 0
-						
-					### FastSim Met Uncertainty					
-					Met["Met_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEMet"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuMet"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuMet"]  
-					Met["GenMet_%s"%region] = Pickles["%s_%s_EE"%(m_sbottom,m_neutralino_2)]["EE"]["EEGenMet"] + Pickles["%s_%s_MuMu"%(m_sbottom,m_neutralino_2)]["MuMu"]["MuMuGenMet"] - Pickles["%s_%s_EMu"%(m_sbottom,m_neutralino_2)]["EMu"]["EMuGenMet"]  
-					
-					if Yields["SFOF_%s"%region] > 0:
-						systUncertainties["MetUncertainty_%s"%region] = 0.5*abs(Met["Met_%s"%region]-Met["GenMet_%s"%region])/Yields["SFOF_%s"%region]
-					else:
-						systUncertainties["MetUncertainty_%s"%region] = 0
-						
-					### Trigger eff uncertainty
-					if Yields["SFOF_%s"%region] > 0:
-						systUncertainties["TriggerEffUncertainty_%s"%region] = sqrt((Yields["EE_%s"%region]*TriggerEffUncertainty)**2 + (Yields["MuMu_%s"%region]*TriggerEffUncertainty)**2 + (Yields["EMu_%s"%region]*TriggerEffUncertainty)**2)/Yields["SFOF_%s"%region]
-					else:
-						systUncertainties["TriggerEffUncertainty_%s"%region] = 0
+					for scaleIndex in range(1,9):
+						ScaleShift["ScaleShift%s"%str(scaleIndex)] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EE"%region]["ScaleShifted%s"%str(scaleIndex)] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_MuMu"%region]["ScaleShifted%s"%str(scaleIndex)] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)]["%s_EMu"%region]["ScaleShifted%s"%str(scaleIndex)]
+						systUncertainties["ScaleUncertainty_%s"%region] = max(systUncertainties["ScaleUncertainty_%s"%region], abs( (ScaleShift["ScaleShift%s"%str(scaleIndex)] - BTag["Mean_%s"%region])/BTag["Mean_%s"%region]))
+				
 							
-	
-	
 				
-				n_bins = 4
-				n_processes = 2
-				n_nuicance_parameters = 19
 				
-				Name= "T6bbllslepton_%s_%s"%(m_sbottom,m_neutralino_2)
+			### create the datacards for each mass bin
+			for massRegion in massRegions:									
+				
+				### number of signal bins = 2 (ttbar-like, non-ttbar like)
+				n_bins = 2 
+				
+				### number of background processes (FS, Z, and Rare background)
+				n_processes = 3
+				
+				n_nuicance_parameters = 18 
+				#~ n_nuicance_parameters = 14 
+				
+				Name= "T6bbllslepton_%s_%s_%s"%(m_sbottom,m_neutralino_2,massRegion)
 				DataCard = open("DataCards/%s.txt"%Name,'w')
 				
+				### information for us
 				DataCard.write("# sbottom = %s \n"%m_sbottom)
 				DataCard.write("# neutralino 2 = %s \n"%m_neutralino_2)
+				DataCard.write("# mass region = %s \n"%massRegion)
 				DataCard.write("# Xsection = %s \n"%xsection)
+				
+				### bins, processes and nuisance parameters for the tool
 				DataCard.write("imax %s number of bins \n"%n_bins)
 				DataCard.write("jmax %s number of processes minus 1 \n"%n_processes)
 				DataCard.write("kmax %s number of nuisance parameters \n"%n_nuicance_parameters)
+				
+				### observed event numbers in each bin
 				DataCard.write("------------------------------------------------------------------------------------------- \n")
-				DataCard.write("bin          LowMassLowNll   LowMassHighNll   HighMassLowNll    HighMassHighNll \n")
-				DataCard.write("observation   %s              %s               %s                %s \n"%(LowMassLowNll["observation"],LowMassHighNll["observation"],HighMassLowNll["observation"],HighMassHighNll["observation"]))
-				DataCard.write("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
-				DataCard.write("bin                                     LowMassLowNll    LowMassLowNll    LowMassLowNll   LowMassHighNll   LowMassHighNll   LowMassHighNll  HighMassLowNll   HighMassLowNll   HighMassLowNll  HighMassHighNll   HighMassHighNll   HighMassHighNll   \n")
-				DataCard.write("process                                 SUSY             ZJets            OF              SUSY             ZJets            OF              SUSY             ZJets            OF              SUSY             ZJets            OF     \n")
-				DataCard.write("process                                 0                1                2               0                1                2               0                1                2               0                1                2      \n")
-				DataCard.write("rate                                    %s               %s               %s              %s               %s               %s              %s               %s               %s              %s               %s               %s     \n"%(Yields["SFOF_LowMassLowNll"],LowMassLowNll["DY"],LowMassLowNll["TTBar"]*rSFOFInclusive,Yields["SFOF_LowMassHighNll"],LowMassHighNll["DY"],LowMassHighNll["TTBar"]*rSFOFInclusive,Yields["SFOF_HighMassLowNll"],HighMassLowNll["DY"],HighMassLowNll["TTBar"]*rSFOFInclusive,Yields["SFOF_HighMassHighNll"],HighMassHighNll["DY"],HighMassHighNll["TTBar"]*rSFOFInclusive))
-				DataCard.write("-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
-				
-				DataCard.write("SigTriggerEffUncertainty        lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+TriggerEffUncertainty ),str(1+TriggerEffUncertainty ),str(1+TriggerEffUncertainty ),str(1+TriggerEffUncertainty )))
-				DataCard.write("SigLumiUncertainty              lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+LumiUncertainty ),str(1+LumiUncertainty ),str(1+LumiUncertainty ),str(1+LumiUncertainty )))
-				DataCard.write("SigJESUncertainty               lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["JESUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["JESUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["JESUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["JESUncertainty_HighMassHighNll"] )))
-				DataCard.write("SigLeptonFullSimUncertainty     lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["LeptonFullSimUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["LeptonFullSimUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["LeptonFullSimUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["LeptonFullSimUncertainty_HighMassHighNll"] )))
-				DataCard.write("SigPileupUncertainty            lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["pileupUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["pileupUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["pileupUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["pileupUncertainty_HighMassHighNll"] )))
-				DataCard.write("SigISRUncertainty               lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["ISRUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["ISRUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["ISRUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["ISRUncertainty_HighMassHighNll"] )))
-				DataCard.write("SigBTagHeavyUncertainty         lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["BTagHeavyUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["BTagHeavyUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["BTagHeavyUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["BTagHeavyUncertainty_HighMassHighNll"] )))
-				DataCard.write("SigBTagLightUncertainty         lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["BTagLightUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["BTagLightUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["BTagLightUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["BTagLightUncertainty_HighMassHighNll"] )))
-				DataCard.write("SigMetUncertainty               lnN     %s               -                -               %s               -                -               %s               -                -               %s               -                -  \n"%(str(1+systUncertainties["MetUncertainty_LowMassLowNll"]) ,str(1+systUncertainties["MetUncertainty_LowMassHighNll"]) ,str(1+systUncertainties["MetUncertainty_HighMassLowNll"]) ,str(1+systUncertainties["MetUncertainty_HighMassHighNll"] )))
-				
-				
-				DataCard.write("SigStatUncertLowMassLowNll      lnN     %s               -                -               -                -                -               -                -                -               -                -                -  \n"%(str(1+statUncertainties["SFOF_LowMassLowNll"])))
-				DataCard.write("SigStatUncertLowMassHighNll     lnN     -                -                -               %s               -                -               -                -                -               -                -                -  \n"%(str(1+statUncertainties["SFOF_LowMassHighNll"])))
-				DataCard.write("SigStatUncertHighMassLowNll     lnN     -                -                -               -                -                -               %s               -                -               -                -                -  \n"%(str(1+statUncertainties["SFOF_HighMassLowNll"])))
-				DataCard.write("SigStatUncertHighMassHighNll    lnN     -                -                -               -                -                -               -                -                -               %s               -                -  \n"%(str(1+statUncertainties["SFOF_HighMassHighNll"])))
-										
-				DataCard.write("OFSystUncertLowMassLowNll       gmN %s  -                -               %s               -                -                -               -                -                -               -                -                -  \n"%(str(LowMassLowNll["TTBar"]),str(rSFOFInclusive)))
-				DataCard.write("OFSystUncertLowMassHighNll      gmN %s  -                -                -               -                -                %s              -                -                -               -                -                -  \n"%(str(LowMassHighNll["TTBar"]),str(rSFOFInclusive)))
-				DataCard.write("OFSystUncertHighMassLowNll      gmN %s  -                -                -               -                -                -               -                -               %s               -                -                -  \n"%(str(HighMassLowNll["TTBar"]),str(rSFOFInclusive)))
-				DataCard.write("OFSystUncertHighMassHighNll     gmN %s  -                -                -               -                -                -               -                -                -               -                -                %s \n"%(str(HighMassHighNll["TTBar"]),str(rSFOFInclusive)))
-				
-				DataCard.write("RSFOFUncert                     lnN     -                -               %s               -                -                %s              -                -               %s               -                -                %s  \n"%(str(1+rSFOFInclusiveUnc),str(1+rSFOFInclusiveUnc),str(1+rSFOFInclusiveUnc),str(1+rSFOFInclusiveUnc)))
-				
-				DataCard.write("ZJetsUncert                     lnN     -                %s               -               -                %s               -               -                %s              -                -                %s               - \n"%(str(1+LowMassLowNll["DYUncertainty"]),str(1+LowMassHighNll["DYUncertainty"]),str(1+HighMassLowNll["DYUncertainty"]),str(1+HighMassHighNll["DYUncertainty"])))
+				DataCard.write("bin          LowNll   HighNll  \n")
+				DataCard.write("observation  %s       %s       \n"%(results["lowNLL"]["highMT2_%s_SF"%massRegion],results["highNLL"]["highMT2_%s_SF"%massRegion]))
 					
-					
-							
+				### Background estimation and signal events for each mass point
+				### For the flavor symmetric background the OF events * rSFOF have to be put in here
+				### without rounding the results. This has to be exactly the same as the numbers put
+				### into the lines on the statistic uncertainty for OF background
+				DataCard.write("------------------------------------------------------------------------------------------------------------------------------ \n")
+				DataCard.write("bin                                         LowNll   	  LowNll        LowNll        LowNll        HighNll         HighNll         HighNll         HighNll \n")
+				DataCard.write("process                                     SUSY          FS            onZ           Rare          SUSY            FS              onZ             Rare   \n")
+				DataCard.write("process                                     0             1             2             3             0               1               2               3      \n")
+				DataCard.write("rate                                        %s            %s            %s            %s            %s              %s              %s              %s      \n"%(Yields["SFOF_%s_lowNll_highMT2"%massRegion],results["lowNLL"]["highMT2_%s_OF"%massRegion]*results["lowNLL"]["highMT2_%s_RSFOF_Combined"%massRegion],results["lowNLL"]["highMT2_%s_ZPredSF"%massRegion],results["lowNLL"]["highMT2_%s_RarePredSF"%massRegion],Yields["SFOF_%s_highNll_highMT2"%massRegion],results["highNLL"]["highMT2_%s_OF"%massRegion]*results["highNLL"]["highMT2_%s_RSFOF_Combined"%massRegion],results["highNLL"]["highMT2_%s_ZPredSF"%massRegion],results["highNLL"]["highMT2_%s_RarePredSF"%massRegion]))
+				DataCard.write("------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- \n")
+				
+				
+				DataCard.write("SigLumiUncertainty               lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+LumiUncertainty ),str(1+LumiUncertainty )))
+				DataCard.write("SigTriggerEffUncertainty         lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["TriggerEffUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["TriggerEffUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigJESUncertainty                lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["JESUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["JESUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigLeptonFullSimUncertainty      lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["LeptonFullSimUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["LeptonFullSimUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigLeptonFastSimUncertainty      lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["LeptonFastSimUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["LeptonFastSimUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigPileupUncertainty             lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["PileupUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["PileupUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigISRUncertainty                lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["ISRUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["ISRUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigMetUncertainty                lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["MetUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["MetUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigBTagHeavyUncertainty          lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["BTagHeavyUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["BTagHeavyUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigBTagLightUncertainty          lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["BTagLightUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["BTagLightUncertainty_%s_highNll_highMT2"%massRegion] )))
+				DataCard.write("SigScaleUncertainty              lnN        %s            -            -             -             %s               -               -               -             \n"%(str(1+systUncertainties["ScaleUncertainty_%s_lowNll_highMT2"%massRegion] ),str(1+systUncertainties["ScaleUncertainty_%s_highNll_highMT2"%massRegion] )))
+
+				DataCard.write("SigStatUncertLowNll_%s           lnN        %s            -            -             -              -               -               -               -             \n"%(massRegion,str(1+statUncertainties["SFOF_%s_lowNll_highMT2"%massRegion] )))
+				DataCard.write("SigStatUncertHighNll_%s          lnN         -            -            -             -             %s               -               -               -             \n"%(massRegion,str(1+statUncertainties["SFOF_%s_highNll_highMT2"%massRegion])))
+
+				### OF yield * RSFOF as prediction -> stat. uncertainty on FS background is gamma uncertainty and depends on the OF statistics
+				### not correlated between bins
+				DataCard.write("OFStatUncertLowNll_%s             gmN %s     -             %s            -            -            -               -               -               -             \n"%(massRegion,str(results["lowNLL"]["highMT2_%s_OF"%massRegion]),str(results["lowNLL"]["highMT2_%s_RSFOF_Combined"%massRegion])))
+				DataCard.write("OFStatUncertHighNll_%s            gmN %s     -             -             -            -            -               %s              -               -             \n"%(massRegion,str(results["highNLL"]["highMT2_%s_OF"%massRegion]),str(results["highNLL"]["highMT2_%s_RSFOF_Combined"%massRegion])))
+				
+				### Uncertainty on RSFOF -> syst uncertainty on flavor symmetric background. Correlated between bins
+				DataCard.write("RSFOFUncert                       lnN        -            %s             -             -             -              %s              -              -             \n"%(str(1+results["lowNLL"]["highMT2_%s_RSFOF_Combined_Err"%massRegion]),str(1+results["highNLL"]["highMT2_%s_RSFOF_Combined_Err"%massRegion])))
+				
+				DataCard.write("OnZUncert                        lnN        -             -            %s             -              -               -              %s             -             \n"%(str(1+results["lowNLL"]["highMT2_%s_ZPredErrSF"%massRegion]/results["lowNLL"]["highMT2_%s_ZPredSF"%massRegion]),str(1+results["highNLL"]["highMT2_%s_ZPredErrSF"%massRegion]/results["highNLL"]["highMT2_%s_ZPredSF"%massRegion])))
+				
+				DataCard.write("RareUncert                       lnN        -             -            -             %s             -               -              -              %s            \n"%(str(1+results["lowNLL"]["highMT2_%s_RarePredErrSF"%massRegion]/results["lowNLL"]["highMT2_%s_RarePredSF"%massRegion]),str(1+results["highNLL"]["highMT2_%s_RarePredErrSF"%massRegion]/results["highNLL"]["highMT2_%s_RarePredSF"%massRegion])))
+				
+						
 			m_n += stepsize		
 		m_b += stepsize
 			
@@ -290,25 +436,16 @@ def writeDataCards():
 				
 		
 	
-										
-					
-			
-											
 									
-				
-
-# This method just waits for a button to be pressed
-def waitForInput():
-    raw_input("Press any key to continue!")
-    return
 
 # entry point
 #-------------
 if (__name__ == "__main__"):
-    # use option parser to allow verbose mode
     parser = OptionParser()
-    parser.add_option("-v", "--verbose", dest="verbose", action="store_true", default=False,
-                                  help="talk about everything")
+    parser.add_option("-s", "--systematics", dest="systematics", action="store_true", default=False,
+                                  help="plot maps for systematic uncertainties")
+    (opts, args) = parser.parse_args()
+
    
-    writeDataCards()
+    writeDataCards(opts.systematics)
  

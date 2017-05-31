@@ -1,0 +1,24 @@
+syntax: glob
+*.root
+*.pkl
+*.aux
+*.log
+*.nav
+*.snm
+*.toc
+*.synctex.gz
+*.out
+*.pyc
+*.py~
+*.db
+*.pdf
+*.png
+*.root
+*.tex
+*.txt
+*.d
+*.so
+*.cc~
+*.h~
+.gitignore~
+*~
