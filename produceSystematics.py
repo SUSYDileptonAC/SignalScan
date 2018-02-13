@@ -237,6 +237,8 @@ def plot():
 	
 	triggerEffUncertainty = 0.03
 	lumiUncertainty = 0.026
+	
+	### Loop over different mass and NLL bins
 
 	for massRegion in massRegions:
 		for nLLRegion in nLLRegions:
@@ -267,6 +269,7 @@ def plot():
 			
 			sampleName = "T6bbllslepton_msbottom_%s_mneutralino_%s"%(m_sbottom,m_neutralino_2)
 			
+			### Fetch default normalization and those for PU and ISR splitted/shifted parts
 			
 			denominator = denominatorHisto.GetBinContent(denominatorHisto.GetXaxis().FindBin(int(sampleName.split("_")[2])),denominatorHisto.GetYaxis().FindBin(int(sampleName.split("_")[4])))
 			denominatorLowPU = denominatorHistoLowPU.GetBinContent(denominatorHistoLowPU.GetXaxis().FindBin(int(sampleName.split("_")[2])),denominatorHistoLowPU.GetYaxis().FindBin(int(sampleName.split("_")[4])))
@@ -287,8 +290,6 @@ def plot():
 			
 			for signalBin in signalBins:
 				
-				#~ cuts = "weight*bTagWeight*ISRCorrection*leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*(abs(deltaPhiJetMet1) > 0.4  && abs(deltaPhiJetMet2) > 0.4 && nJets > 1 && met > 150 && nUnmatchedJets == 0 && deltaR > 0.1 && chargeProduct < 0 && ((pt1 > 25 && pt2 > 20) || (pt1 > 20 && pt2 > 25)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && %s)"%(signalCuts[signalBin])
-				#~ cuts = "bTagWeight*ISRCorrection*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*(abs(deltaPhiJetMet1) > 0.4  && abs(deltaPhiJetMet2) > 0.4 && nJets > 1 && met > 150 && nUnmatchedJets == 0 && deltaR > 0.1 && chargeProduct < 0 && ((pt1 > 25 && pt2 > 20) || (pt1 > 20 && pt2 > 25)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && %s)"%(signalCuts[signalBin])
 				cuts = "bTagWeight*ISRCorrection*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*(met / caloMet < 5 && nBadMuonJets == 0 && pt > 25 && abs(deltaPhiJetMet1) > 0.4  && abs(deltaPhiJetMet2) > 0.4 && nJets > 1 && met > 150 && nUnmatchedJets == 0 && deltaR > 0.1 && chargeProduct < 0 && ((pt1 > 25 && pt2 > 20) || (pt1 > 20 && pt2 > 25)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && %s)"%(signalCuts[signalBin])
 				unweightedCuts = "(met / caloMet < 5 && nBadMuonJets == 0 && pt > 25 && abs(deltaPhiJetMet1) > 0.4  && abs(deltaPhiJetMet2) > 0.4 && nJets > 1 && met > 150 && nUnmatchedJets == 0 && chargeProduct < 0 && deltaR > 0.1 && ((pt1 > 25 && pt2 > 20) || (pt1 > 20 && pt2 > 25)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && %s)"%(signalCuts[signalBin])
 				
@@ -319,6 +320,10 @@ def plot():
 							EEPileupHighMet = EEPileupHighMet * denominator/denominatorHighPU
 							EEPileupLowMet = EEPileupLowMet * denominator/denominatorLowPU
 						
+						### SUSY group recommendation: Calculate yields twice, once
+						### for reco MET and once for genMet and take average (and half
+						### of the difference as uncertainty.
+						### Suggested since MET might not be perfectly modelled in FastSim
 						
 						cuts = cuts.replace("met","genMet")
 						
@@ -393,9 +398,7 @@ def plot():
 							EEScaleUncertainty = 0
 						
 						
-						#~ EEsystUncertainty = sqrt(EEMetUncertainty**2+EEBTagHeavyUncertainty**2+EEBTagLightUncertainty**2+EEJESUncertainty**2+EELeptonFullSimUncertainty**2+EEPileupUncertainty**2+EEISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
 						EEsystUncertainty = sqrt(EEScaleUncertainty**2+EEMetUncertainty**2+EEBTagHeavyUncertainty**2+EEBTagLightUncertainty**2+EEJESUncertainty**2+EELeptonFastSimUncertainty**2+EELeptonFullSimUncertainty**2+EEPileupUncertainty**2+EEISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
-						#~ EEsystUncertainty = sqrt(EEMetUncertainty**2+EEJESUncertainty**2+EELeptonFastSimUncertainty**2+EELeptonFullSimUncertainty**2+EEPileupUncertainty**2+EEISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
 						
 						counts["%s_EE"%signalBin] = {"Val":EEsignalYield,"MCEvents":EEMCEvents,"SignalEfficiency":EEsignalEfficiency,"StatUncertainty":EEStatUncertainty,"TotSystUncertainty":EEsystUncertainty,
 						"JESUncertainty":EEJESUncertainty,"JESMean":UnscaledYield*EETriggerEff,"JESUp":EEJESUp*EETriggerEff,"JESDown":EEJESDown*EETriggerEff,
@@ -505,9 +508,7 @@ def plot():
 							EMuScaleUncertainty = 0
 						
 						
-						#~ EMusystUncertainty = sqrt(EMuMetUncertainty**2+EMuBTagHeavyUncertainty**2+EMuBTagLightUncertainty**2+EMuJESUncertainty**2+EMuLeptonFullSimUncertainty**2+EMuPileupUncertainty**2+EMuISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
 						EMusystUncertainty = sqrt(EMuScaleUncertainty**2+EMuMetUncertainty**2+EMuBTagHeavyUncertainty**2+EMuBTagLightUncertainty**2+EMuJESUncertainty**2+EMuLeptonFastSimUncertainty**2+EMuLeptonFullSimUncertainty**2+EMuPileupUncertainty**2+EMuISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
-						#~ EMusystUncertainty = sqrt(EMuMetUncertainty**2+EMuJESUncertainty**2+EMuLeptonFastSimUncertainty**2+EMuLeptonFullSimUncertainty**2+EMuPileupUncertainty**2+EMuISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
 						
 						counts["%s_EMu"%signalBin] = {"Val":EMusignalYield,"MCEvents":EMuMCEvents,"SignalEfficiency":EMusignalEfficiency,"StatUncertainty":EMuStatUncertainty,"TotSystUncertainty":EMusystUncertainty,
 						"JESUncertainty":EMuJESUncertainty,"JESMean":UnscaledYield*EMuTriggerEff,"JESUp":EMuJESUp*EMuTriggerEff,"JESDown":EMuJESDown*EMuTriggerEff,
@@ -619,9 +620,7 @@ def plot():
 							MuMuScaleUncertainty = 0.
 						
 						
-						#~ MuMusystUncertainty = sqrt(MuMuMetUncertainty**2+MuMuBTagHeavyUncertainty**2+MuMuBTagLightUncertainty**2+MuMuJESUncertainty**2+MuMuLeptonFullSimUncertainty**2+MuMuPileupUncertainty**2+MuMuISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
 						MuMusystUncertainty = sqrt(MuMuScaleUncertainty**2+MuMuMetUncertainty**2+MuMuBTagHeavyUncertainty**2+MuMuBTagLightUncertainty**2+MuMuJESUncertainty**2+MuMuLeptonFastSimUncertainty**2+MuMuLeptonFullSimUncertainty**2+MuMuPileupUncertainty**2+MuMuISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
-						#~ MuMusystUncertainty = sqrt(MuMuMetUncertainty**2+MuMuJESUncertainty**2+MuMuLeptonFastSimUncertainty**2+MuMuLeptonFullSimUncertainty**2+MuMuPileupUncertainty**2+MuMuISRUncertainty**2+triggerEffUncertainty**2+lumiUncertainty**2)
 						
 						counts["%s_MuMu"%signalBin] = {"Val":MuMusignalYield,"MCEvents":MuMuMCEvents,"SignalEfficiency":MuMusignalEfficiency,"StatUncertainty":MuMuStatUncertainty,"TotSystUncertainty":MuMusystUncertainty,
 						"JESUncertainty":MuMuJESUncertainty,"JESMean":UnscaledYield*MuMuTriggerEff,"JESUp":MuMuJESUp*MuMuTriggerEff,"JESDown":MuMuJESDown*MuMuTriggerEff,
@@ -636,7 +635,6 @@ def plot():
 						
 			
 			outFilePkl = open("shelvesSystematics/%s.pkl"%(sampleName),"w")
-			#~ outFilePkl = open("shelvesSystematics17fb/%s.pkl"%(sampleName),"w")
 			pickle.dump(counts, outFilePkl)
 			outFilePkl.close()
 			

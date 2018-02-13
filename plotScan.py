@@ -212,6 +212,8 @@ def plot():
 					JES["JESUp_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["JESUp"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["JESUp"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["JESUp"]*RSFOF
 					JES["JESDown_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["JESDown"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["JESDown"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["JESDown"]*RSFOF
 					
+					### Only consider bins with a sufficient number of MC events
+					### otherwise nearly empty bins will dominate the plots
 					if JES["Mean_%s"%region] > 0 and MCEvents["SFOF_%s"%region] > 100:
 						Uncertainties["JESUncertainty_%s"%region] = max(abs(JES["JESUp_%s"%region]-JES["Mean_%s"%region])/JES["Mean_%s"%region],abs(JES["JESDown_%s"%region]-JES["Mean_%s"%region])/JES["Mean_%s"%region])
 					else:
@@ -237,56 +239,6 @@ def plot():
 					else:
 						Uncertainties["LeptonFullSimUncertainty_%s"%region] = 0
 					
-					
-					### Lepton FastSim Uncertainty
-					
-					#~ LeptonFastSim["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["LeptonFastSimMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["LeptonFastSimMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["LeptonFastSimMean"]*RSFOF
-					#~ LeptonFastSim["LeptonNoFastSimScaleFactors_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["LeptonNoFastSimScaleFactor"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["LeptonNoFastSimScaleFactor"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["LeptonNoFastSimScaleFactor"]*RSFOF
-					#~ 
-					#~ if LeptonFastSim["Mean_%s"%region] > 0 and MCEvents["SFOF_%s"%region] > 100:
-						#~ Uncertainties["LeptonFastSimUncertainty_%s"%region] = abs(LeptonFastSim["LeptonNoFastSimScaleFactors_%s"%region]-LeptonFastSim["Mean_%s"%region])/LeptonFastSim["Mean_%s"%region]
-					#~ else:
-						#~ Uncertainties["LeptonFastSimUncertainty_%s"%region] = 0
-					
-					### Lepton FullSim Uncertainty
-					
-					#~ LeptonFullSim["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["LeptonFullSimMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["LeptonFullSimMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["LeptonFullSimMean"]*RSFOF
-					#~ LeptonFullSim["LeptonNoFullSimScaleFactors_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["LeptonNoFullSimScaleFactor"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["LeptonNoFullSimScaleFactor"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["LeptonNoFullSimScaleFactor"]*RSFOF 
-					#~ 
-					#~ if LeptonFullSim["Mean_%s"%region] > 0 and MCEvents["SFOF_%s"%region] > 100:
-						#~ Uncertainties["LeptonFullSimUncertainty_%s"%region] = abs(LeptonFullSim["LeptonNoFullSimScaleFactors_%s"%region]-LeptonFullSim["Mean_%s"%region])/LeptonFullSim["Mean_%s"%region]
-						#~ Uncertainties["LeptonFullSimUncertainty_%s"%region] = 0.07
-					#~ else:
-						#~ Uncertainties["LeptonFullSimUncertainty_%s"%region] = 0
-						
-					
-					### Lepton Uncertainty
-					#~ Lepton["LeptonMean_%s"%region] = Yields["SFOF_%s"%region]
-					#~ Lepton["LeptonUp_%s"%region] = Yields["EE_%s"%region] * (1+ElectronUncertainty)**2 + Yields["MuMu_%s"%region] * (1+MuonUncertainty)**2 - Yields["EMu_%s"%region] * (1+ElectronUncertainty) * (1+MuonUncertainty)
-					#~ Lepton["LeptonDown_%s"%region] = Yields["EE_%s"%region] * (1-ElectronUncertainty)**2 + Yields["MuMu_%s"%region] * (1-MuonUncertainty)**2 - Yields["EMu_%s"%region] * (1-ElectronUncertainty) * (1-MuonUncertainty)
-					#~ 
-					#~ if Lepton["LeptonMean_%s"%region] > 0:
-						#~ Uncertainties["LeptonUncertainty_%s"%region] = max(abs(Lepton["LeptonUp_%s"%region]-Lepton["LeptonMean_%s"%region])/Lepton["LeptonMean_%s"%region],abs(Lepton["LeptonDown_%s"%region] -Lepton["LeptonMean_%s"%region])/Lepton["LeptonMean_%s"%region] )
-					#~ else:
-						#~ Uncertainties["LeptonUncertainty_%s"%region] = 0
-					#~ 
-					#~ Lepton["Mean_%s"%region] = Yields["SFOF_%s"%region]
-					#~ Lepton["ElectronUncertainty_EE_%s"%region] = Yields["EE_%s"%region] * ElectronUncertainty
-					#~ Lepton["ElectronUncertainty_EMu_%s"%region] = Yields["EMu_%s"%region] * ElectronUncertainty
-					#~ Lepton["MuonUncertainty_EMu_%s"%region] = Yields["EMu_%s"%region] * MuonUncertainty
-					#~ Lepton["MuonUncertainty_MuMu_%s"%region] = Yields["MuMu_%s"%region] * MuonUncertainty
-					#~ 
-					#~ if Lepton["Mean_%s"%region] > 0:
-						#~ Uncertainties["LeptonUncertainty_%s"%region] = sqrt( 4 * Lepton["ElectronUncertainty_EE_%s"%region]**2 + 4 * Lepton["MuonUncertainty_MuMu_%s"%region]**2
-																			#~ + Lepton["ElectronUncertainty_EMu_%s"%region]**2 + Lepton["MuonUncertainty_EMu_%s"%region]**2
-																			#~ + 2 * Lepton["ElectronUncertainty_EMu_%s"%region] * Lepton["MuonUncertainty_EMu_%s"%region] 
-																			#~ + 8 * Lepton["ElectronUncertainty_EE_%s"%region] * Lepton["MuonUncertainty_MuMu_%s"%region]
-																			#~ - 4 * Lepton["ElectronUncertainty_EE_%s"%region] * sqrt(Lepton["ElectronUncertainty_EMu_%s"%region]**2 + Lepton["MuonUncertainty_EMu_%s"%region]**2 + 2* Lepton["MuonUncertainty_EMu_%s"%region] * Lepton["ElectronUncertainty_EMu_%s"%region])
-																			#~ - 4 * Lepton["MuonUncertainty_MuMu_%s"%region] * sqrt(Lepton["ElectronUncertainty_EMu_%s"%region]**2 + Lepton["MuonUncertainty_EMu_%s"%region]**2 + 2* Lepton["MuonUncertainty_EMu_%s"%region] * Lepton["ElectronUncertainty_EMu_%s"%region])
-																			#~ ) / Lepton["Mean_%s"%region]
-																			#~ 
-					#~ else:
-						#~ Uncertainties["LeptonUncertainty_%s"%region] = 0
 					
 					###  Pileup Uncertainty
 					Pileup["Mean_%s"%region] = Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EE"]["PileupMean"] + Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_MuMu"]["PileupMean"] - Pickles["%s_%s"%(m_sbottom,m_neutralino_2)][region+"_EMu"]["PileupMean"]*RSFOF
@@ -362,15 +314,12 @@ def plot():
 							
 					### Total syst uncertainty
 					Uncertainties["SystUncertainty_%s"%region] = sqrt(Uncertainties["ScaleUncertainty_%s"%region]**2 + Uncertainties["JESUncertainty_%s"%region]**2 + Uncertainties["LeptonFastSimUncertainty_%s"%region]**2 + Uncertainties["LeptonFullSimUncertainty_%s"%region]**2 + Uncertainties["pileupUncertainty_%s"%region]**2 + Uncertainties["ISRUncertainty_%s"%region]**2 + Uncertainties["BTagUncertaintyLight_%s"%region]**2 + Uncertainties["BTagUncertaintyHeavy_%s"%region]**2  + Uncertainties["TriggerEffUncertainty_%s"%region]**2 + LumiUncertainty**2)
-					#~ Uncertainties["SystUncertainty_%s"%region] = sqrt(Uncertainties["JESUncertainty_%s"%region]**2 + Uncertainties["LeptonFullSimUncertainty_%s"%region]**2 + Uncertainties["pileupUncertainty_%s"%region]**2 + Uncertainties["ISRUncertainty_%s"%region]**2 + Uncertainties["BTagUncertaintyLight_%s"%region]**2 + Uncertainties["BTagUncertaintyHeavy_%s"%region]**2  + Uncertainties["MetUncertainty_%s"%region]**2 + Uncertainties["TriggerEffUncertainty_%s"%region]**2 + LumiUncertainty**2)
-					#~ Uncertainties["SystUncertainty_%s"%region] = sqrt(Uncertainties["JESUncertainty_%s"%region]**2 + Uncertainties["LeptonFullSimUncertainty_%s"%region]**2 + Uncertainties["ISRUncertainty_%s"%region]**2 + Uncertainties["BTagUncertaintyLight_%s"%region]**2 + Uncertainties["BTagUncertaintyHeavy_%s"%region]**2  + Uncertainties["MetUncertainty_%s"%region]**2 + Uncertainties["TriggerEffUncertainty_%s"%region]**2 + LumiUncertainty**2)
-	
+					
 					### Totalaluncertainty
 					Uncertainties["TotalUncertainty_%s"%region] = sqrt(Uncertainties["SystUncertainty_%s"%region]**2 + Uncertainties["StatUncertainty_%s"%region]**2)
 			
 					for uncertainty in uncertaintySources:
 						uncertaintyArrays["%s_%s"%(uncertainty,region)].append(Uncertainties["%s_%s"%(uncertainty,region)])
-						#~ Histograms["%s_%s"%(uncertainty,region)].SetBinContent(Histograms["%s_%s"%(uncertainty,region)].GetXaxis().FindBin(m_b),Histograms["%s_%s"%(uncertainty,region)].GetYaxis().FindBin(m_n),Uncertainties["%s_%s"%(uncertainty,region)])
 						
 				for regionCombination in regionCombinations:
 						
@@ -390,12 +339,6 @@ def plot():
 						JES["JESUp_%s"%regionCombination] =  0
 						JES["JESDown_%s"%regionCombination] =  0
 						
-						#~ Lepton["Mean_%s"%regionCombination] =  0						
-						#~ Lepton["Up_%s"%regionCombination] =  0
-						#~ Lepton["Down_%s"%regionCombination] =  0
-						#~ 
-						#~ Lepton["Mean_%s"%regionCombination] =  0
-											
 						LeptonFastSim["Mean_%s"%regionCombination] =  0
 						LeptonFastSim["MeanShifted_%s"%regionCombination] =  0
 						
@@ -449,12 +392,6 @@ def plot():
 								LeptonFullSim["Mean_%s"%regionCombination] +=  LeptonFullSim["Mean_%s"%region]
 								LeptonFullSim["MeanShifted_%s"%regionCombination] +=  LeptonFullSim["MeanShifted_%s"%region]
 								
-								#~ Lepton["Mean_%s"%regionCombination] = Yields["SFOF_%s"%regionCombination]						
-								#~ Lepton["ElectronUncertainty_EE_%s"%regionCombination] = Yields["EE_%s"%regionCombination] * ElectronUncertainty
-								#~ Lepton["ElectronUncertainty_EMu_%s"%regionCombination] = Yields["EMu_%s"%regionCombination] * ElectronUncertainty
-								#~ Lepton["MuonUncertainty_EMu_%s"%regionCombination] = Yields["EMu_%s"%regionCombination] * MuonUncertainty
-								#~ Lepton["MuonUncertainty_MuMu_%s"%regionCombination] = Yields["MuMu_%s"%regionCombination] * MuonUncertainty
-								
 								Pileup["Mean_%s"%regionCombination] +=  Pileup["Mean_%s"%region]						
 								Pileup["PileupHigh_%s"%regionCombination] +=  Pileup["PileupHigh_%s"%region]
 								Pileup["PileupLow_%s"%regionCombination] +=  Pileup["PileupLow_%s"%region]
@@ -488,28 +425,7 @@ def plot():
 							Uncertainties["JESUncertainty_%s"%regionCombination] = max(abs(JES["JESUp_%s"%regionCombination]-JES["Mean_%s"%regionCombination])/JES["Mean_%s"%regionCombination],abs(JES["JESDown_%s"%regionCombination]-JES["Mean_%s"%regionCombination])/JES["Mean_%s"%regionCombination])
 						else:
 							Uncertainties["JESUncertainty_%s"%regionCombination] = 0
-						
-						#~ if Lepton["Mean_%s"%regionCombination] > 0:
-							#~ Uncertainties["LeptonUncertainty_%s"%regionCombination] = sqrt( 4 * Lepton["ElectronUncertainty_EE_%s"%regionCombination]**2 + 4 * Lepton["MuonUncertainty_MuMu_%s"%regionCombination]**2
-																				#~ + Lepton["ElectronUncertainty_EMu_%s"%regionCombination]**2 + Lepton["MuonUncertainty_EMu_%s"%regionCombination]**2
-																				#~ + 2 * Lepton["ElectronUncertainty_EMu_%s"%regionCombination] * Lepton["MuonUncertainty_EMu_%s"%regionCombination] 
-																				#~ + 8 * Lepton["ElectronUncertainty_EE_%s"%regionCombination] * Lepton["MuonUncertainty_MuMu_%s"%regionCombination]
-																				#~ - 4 * Lepton["ElectronUncertainty_EE_%s"%regionCombination] * sqrt(Lepton["ElectronUncertainty_EMu_%s"%regionCombination]**2 + Lepton["MuonUncertainty_EMu_%s"%regionCombination]**2 + 2* Lepton["MuonUncertainty_EMu_%s"%regionCombination] * Lepton["ElectronUncertainty_EMu_%s"%regionCombination])
-																				#~ - 4 * Lepton["MuonUncertainty_MuMu_%s"%regionCombination] * sqrt(Lepton["ElectronUncertainty_EMu_%s"%regionCombination]**2 + Lepton["MuonUncertainty_EMu_%s"%regionCombination]**2 + 2* Lepton["MuonUncertainty_EMu_%s"%regionCombination] * Lepton["ElectronUncertainty_EMu_%s"%regionCombination])
-																				#~ ) / Lepton["Mean_%s"%regionCombination]
-																				#~ 
-						#~ else:
-							#~ Uncertainties["LeptonUncertainty_%s"%regionCombination] = 0
-								
-						#~ Lepton["LeptonMean_%s"%regionCombination] = Yields["SFOF_%s"%regionCombination]
-						#~ Lepton["LeptonUp_%s"%regionCombination] = Yields["EE_%s"%regionCombination] * (1+ElectronUncertainty)**2 + Yields["MuMu_%s"%regionCombination] * (1+MuonUncertainty)**2 - Yields["EMu_%s"%regionCombination] * (1+ElectronUncertainty) * (1+MuonUncertainty)
-						#~ Lepton["LeptonDown_%s"%regionCombination] = Yields["EE_%s"%regionCombination] * (1-ElectronUncertainty)**2 + Yields["MuMu_%s"%regionCombination] * (1-MuonUncertainty)**2 - Yields["EMu_%s"%regionCombination] * (1-ElectronUncertainty) * (1-MuonUncertainty)
-						#~ 
-						#~ if Lepton["LeptonMean_%s"%regionCombination] > 0:
-							#~ Uncertainties["LeptonUncertainty_%s"%regionCombination] = max(abs(Lepton["LeptonUp_%s"%regionCombination]-Lepton["LeptonMean_%s"%regionCombination])/Lepton["LeptonMean_%s"%regionCombination],abs(Lepton["LeptonDown_%s"%regionCombination] -Lepton["LeptonMean_%s"%regionCombination])/Lepton["LeptonMean_%s"%regionCombination] )
-						#~ else:
-							#~ Uncertainties["LeptonUncertainty_%s"%regionCombination] = 0
-						
+							
 						if LeptonFastSim["Mean_%s"%regionCombination] > 0 and MCEvents["SFOF_%s"%regionCombination] > 100:
 						#~ if LeptonFastSim["Mean_%s"%regionCombination] > 0:
 							Uncertainties["LeptonFastSimUncertainty_%s"%regionCombination] = abs(LeptonFastSim["MeanShifted_%s"%regionCombination]-LeptonFastSim["Mean_%s"%regionCombination])/LeptonFastSim["Mean_%s"%regionCombination]
@@ -565,9 +481,7 @@ def plot():
 								
 						### Total syst uncertainty
 						Uncertainties["SystUncertainty_%s"%regionCombination] = sqrt(Uncertainties["ScaleUncertainty_%s"%regionCombination]**2 + Uncertainties["JESUncertainty_%s"%regionCombination]**2 + Uncertainties["LeptonFastSimUncertainty_%s"%regionCombination]**2 + Uncertainties["LeptonFullSimUncertainty_%s"%regionCombination]**2 + Uncertainties["pileupUncertainty_%s"%regionCombination]**2 + Uncertainties["ISRUncertainty_%s"%regionCombination]**2 + Uncertainties["BTagUncertaintyLight_%s"%regionCombination]**2  + Uncertainties["BTagUncertaintyHeavy_%s"%regionCombination]**2  + Uncertainties["TriggerEffUncertainty_%s"%regionCombination]**2 + LumiUncertainty**2)
-						#~ Uncertainties["SystUncertainty_%s"%regionCombination] = sqrt(Uncertainties["JESUncertainty_%s"%regionCombination]**2 + Uncertainties["LeptonFullSimUncertainty_%s"%regionCombination]**2 + Uncertainties["pileupUncertainty_%s"%regionCombination]**2 + Uncertainties["ISRUncertainty_%s"%regionCombination]**2 + Uncertainties["BTagUncertaintyLight_%s"%regionCombination]**2  + Uncertainties["BTagUncertaintyHeavy_%s"%regionCombination]**2  + Uncertainties["TriggerEffUncertainty_%s"%regionCombination]**2 + LumiUncertainty**2)
-						#~ Uncertainties["SystUncertainty_%s"%regionCombination] = sqrt(Uncertainties["JESUncertainty_%s"%regionCombination]**2 + Uncertainties["LeptonFullSimUncertainty_%s"%regionCombination]**2 + Uncertainties["ISRUncertainty_%s"%regionCombination]**2 + Uncertainties["BTagUncertaintyLight_%s"%regionCombination]**2  + Uncertainties["BTagUncertaintyHeavy_%s"%regionCombination]**2  + Uncertainties["TriggerEffUncertainty_%s"%regionCombination]**2 + LumiUncertainty**2)
-		
+						
 						### Total uncertainty
 						Uncertainties["TotalUncertainty_%s"%regionCombination] = sqrt(Uncertainties["SystUncertainty_%s"%regionCombination]**2 + Uncertainties["StatUncertainty_%s"%regionCombination]**2)		
 											
@@ -585,7 +499,6 @@ def plot():
 				regionName = "ttbar_like"
 			else:
 				regionName = "non_ttbar_like"
-			#~ Graphs["%s_%s"%(uncertainty,regionCombination)]=TGraph2D("Graph_%s_%s"%(uncertainty,regionCombination),"%s_%s"%(uncertainty,regionCombination), len(uncertaintyArrays["%s_%s"%(uncertainty,regionCombination)]), array('d',masses_b), array('d',masses_n), array('d',uncertaintyArrays["%s_%s"%(uncertainty,regionCombination)]))
 			Graphs["%s_%s"%(uncertainty,regionCombination)]=TGraph2D("%s_%s"%(uncertainty,regionName),"%s_%s"%(uncertainty,regionCombination), len(uncertaintyArrays["%s_%s"%(uncertainty,regionCombination)]), array('d',masses_b), array('d',masses_n), array('d',uncertaintyArrays["%s_%s"%(uncertainty,regionCombination)]))
 			Graphs["%s_%s"%(uncertainty,regionCombination)].SetNpx(nxbins)
 			Graphs["%s_%s"%(uncertainty,regionCombination)].SetNpy(nybins)
@@ -685,7 +598,6 @@ def plot():
 				latex.DrawLatex(0.175, 0.75, "#splitline{Simplified Model}{#splitline{T6bbslepton, m(#tilde{#chi}_{1}^{0})=100 GeV}{#splitline{"+region_label+"}{"+region_label_2+"}}}")
 				canv.Update()
 				canv.Print("fig/%s/T6bbllslepton_%s_%s.pdf"%(uncertainty,regionCombination,uncertainty))
-				#~ canv.Print("fig/%s/T6bbllslepton_%s_%s.root"%(uncertainty,region,uncertainty))
 	
 	histoFile = TFile("fig/T6bbllslepton_XSecUpperLimit_and_ExclusionContours.root")
 	

@@ -37,12 +37,6 @@ sleptonPoints = {
 				"5":{"m_b":1200,"m_n":1000},
 				}
 
-#~ mllCuts = {
-			#~ "noMllCut":"1>0",
-			#~ "lowMll":"mll < 70 && mll > 20",
-			#~ "highMll":"mll > 120",
-			#~ }
-#~ 
 mllCuts = {
 			"noMllCut":"1>0",
 			"20To60":"mll < 60 && mll > 20",
@@ -220,19 +214,26 @@ if (__name__ == "__main__"):
 		scaleNormalizationHistos["ScaleWeight"+str(i)] = TH2F(signalDenominatorFile.Get("ScaleWeight"+str(i)))
 
 	lumi = 35867.
-		
-	path = locations.dataSetPathSignalNLL
-	#~ path = locations.dataSetPath
 	
+	### more inclusive signal regions, do not yet divide in mll and 
+	### likelihood regions
+	
+	#~ path = locations.dataSetPath	
 	#~ CutRegions = ["basicCut","mll20Cut","pt25Cut"]
+	#~ mllCutRegions = ["noMllCut"]
+	#~ NllCutRegions = ["inclusiveNll"]
+	
+	### closer to signal region -> can be calculated with NLL trees
+	### split in mll and likelihood bins
+		
+	path = locations.dataSetPathSignalNLL	
 	CutRegions = ["met150Cut","nJets2Cut","signalRegionCut","deltaPhiCut"]
 	mllCutRegions = ["noMllCut","20To60","60To86","86To96","96To150","150To200","200To300","300To400","Above400"]
-	#~ mllCutRegions = ["noMllCut"]
 	NllCutRegions = ["inclusiveNll","lowNll","highNll"]
-	#~ NllCutRegions = ["inclusiveNll"]
 	
 	points = ["1","2","3","4","5"]
 	
+	### Factor to calculate the expected number of events with at least 2 leptons
 	BR_factor =  0.25      + 0.5   + 0.25*(0.13+0.06*0.124+0.0011*(0.015+0.113+0.312))
 	
 	triggerEffUncertainty = 0.03
@@ -246,6 +247,7 @@ if (__name__ == "__main__"):
 	MuMuTriggerEff = triggerEffs.inclusive.effMM.val
 	RSFOF = rSFOFDirect.inclusive.val
 
+	## loop over example points
 	for point in points:
 		m_b = sleptonPoints[point]["m_b"]
 		m_sbottom = str(m_b)
@@ -279,6 +281,9 @@ if (__name__ == "__main__"):
 		scalingLumi = lumi*xsection/(denominator*ISRNormalization)
 		weight = denominator*ISRNormalization
 	
+		### loop over regions
+		### calculate yields and uncertainties
+		
 		for region in CutRegions:
 			signalRegionCut = signalRegionCuts[region]
 			 
@@ -291,21 +296,6 @@ if (__name__ == "__main__"):
 			
 					cuts = "bTagWeight*ISRCorrection*leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*leptonFastSimScaleFactor1*leptonFastSimScaleFactor2*(met / caloMet < 5 && nBadMuonJets == 0 && nUnmatchedJets == 0 && deltaR > 0.1 && chargeProduct < 0 && ((pt1 > 25 && pt2 > 20) || (pt1 > 20 && pt2 > 25)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && %s && %s && %s)"%(signalRegionCut,mllCut,NllCut)
 					unweightedCuts = "(met / caloMet < 5 && nBadMuonJets == 0 && nUnmatchedJets == 0 && chargeProduct < 0 && deltaR > 0.1 && ((pt1 > 25 && pt2 > 20) || (pt1 > 20 && pt2 > 25)) && abs(eta1) < 2.4 && abs(eta2) < 2.4 && %s && %s && %s)"%(signalRegionCut,mllCut,NllCut)	
-	
-					#~ if path == locations.dataSetPath:
-						#~ unweightedCuts = unweightedCuts.replace("pt > 25", "p4.Pt() > 25")
-						#~ unweightedCuts = unweightedCuts.replace("pt > 25", "")
-						#~ unweightedCuts = unweightedCuts.replace("mll", "p4.M()")
-						#~ unweightedCuts = unweightedCuts.replace("nJets >= 2 && ", "")
-						#~ unweightedCuts = unweightedCuts.replace("abs(deltaPhiJetMet1) > 0.4  && abs(deltaPhiJetMet2) > 0.4 && ", "")
-						#~ cuts = cuts.replace("pt > 25", "p4.Pt() > 25")
-						#~ cuts = cuts.replace("mll", "p4.M()")
-						#~ cuts = cuts.replace("nJets >= 2 && ", "")
-						#~ cuts = cuts.replace("abs(deltaPhiJetMet1) > 0.4  && abs(deltaPhiJetMet2) > 0.4 && ", "")
-						#~ cuts = cuts.replace("leptonFullSimScaleFactor1*", "")
-						#~ cuts = cuts.replace("leptonFullSimScaleFactor2*", "")
-						#~ cuts = cuts.replace("leptonFastSimScaleFactor1*", "")
-						#~ cuts = cuts.replace("leptonFastSimScaleFactor2*", "")
 						
 					
 					for sample, tree in EETrees.iteritems():

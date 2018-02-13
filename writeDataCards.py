@@ -74,13 +74,6 @@ def getResults(shelvesNll,shelvesOnZ):
 	result["rSFOFDirectErr"] = getattr(rSFOFDirect,region).err
 	result["rSFOFTrig"] = getattr(rSFOFTrig,region).val
 	result["rSFOFTrigErr"] = getattr(rSFOFTrig,region).err
-	#~ result["rEEOF"] = getattr(rEEOF,region).val
-	#~ result["rEEOFErr"] = getattr(rEEOF,region).err
-	#~ result["rMMOF"] = getattr(rMMOF,region).val
-	#~ result["rMMOFErr"] = getattr(rMMOF,region).err
-	
-	#~ result["onZPrediction_highNLL"] = shelvesOnZ["86To96_highNll_highMT2_SF"] - shelvesOnZ["86To96_highNll_highMT2_OF"]
-	#~ result["onZPrediction_lowNLL"] = shelvesOnZ["86To96_lowNll_highMT2_SF"]	- shelvesOnZ["86To96_lowNll_highMT2_OF"]
 	
 	result["onZPrediction_highNLL"] = OnlyZPredictions.MT2.SF.highNLL.val
 	result["onZPrediction_lowNLL"] = OnlyZPredictions.MT2.SF.lowNLL.val
@@ -168,12 +161,7 @@ def writeDataCards(systematics):
 	
 	### get the results from the pkls
 	results = getResults(countingShelves["NLL"],countingShelves["onZ"])
-	#~ results = getResults(countingShelves["NLL"])
 	
-	
-	#~ massRegions = ["LowMass","ZMass","HighMass100To200","HighMass200To400","HighMassHighAbove400"]
-	#~ nLLRegions = ["lowNll","highNll"]
-	#~ MT2Regions = ["lowMT2","highMT2"]
 	massRegions = ["20To60","60To86","96To150","150To200","200To300","300To400","Above400"]
 	nLLRegions = ["lowNll","highNll"]
 	MT2Regions = ["highMT2"]
@@ -366,7 +354,6 @@ def writeDataCards(systematics):
 				n_processes = 3
 				
 				n_nuicance_parameters = 18 
-				#~ n_nuicance_parameters = 14 
 				
 				Name= "T6bbllslepton_%s_%s_%s"%(m_sbottom,m_neutralino_2,massRegion)
 				DataCard = open("DataCards/%s.txt"%Name,'w')

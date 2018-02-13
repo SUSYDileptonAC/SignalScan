@@ -16,7 +16,8 @@ import pickle
 from ROOT import TCanvas, TPad, TH1F, TH1I, THStack, TLegend, TF1, TH2F, TH2D, TFile, TMath
 import ratios
 from defs import sbottom_masses,Backgrounds,Signals,Region,Regions,Plot,getRunRange,getRegion, getPlot
-from corrections import triggerEffs, rSFOF, rSFOFDirect
+from corrections import triggerEffs, rSFOF, rSFOFDirect,rMuELeptonPt, rSFOFTrig
+from centralConfig import systematics, runRanges
 
 from math import sqrt
 from setTDRStyle import setTDRStyle
@@ -56,13 +57,7 @@ massCuts = {
 			"lowMass":"mll > 20 && mll < 86 ",
 			"highMass":"mll > 96 ",
 			"highMassOld":"mll > 101 ",
-			}
-#~ 
-#~ massCuts = {
-			#~ "LowMass":"mll < 81 && mll > 20",
-			#~ "ZMass":"mll > 81 && mll < 101",
-			#~ "HighMass":"mll > 101 ",
-			#~ }			
+			}			
 			
 nLLCuts = {
 			"default":"nLL > 0",
@@ -92,92 +87,82 @@ def plot():
 	
 
 	path = locations.dataSetPathNLL
-	#~ path = locations.dataSetPath
 	
 	
 	runRange = getRunRange("Run2016_36fb")
-	#~ runRange = getRunRange("Run2016_17fb_Unblinded")
 	
-	#~ totalEvents = totalNumberOfGeneratedEvents(path)
 
 	
 	EETrees = readTrees(path, "EE")
 	EMTrees = readTrees(path, "EMu")
 	MMTrees = readTrees(path, "MuMu")
 	
-		
+	### Mass bins for Morion 2017 SRs, summed low and high mass regions + legacy regions
 	massRegions = ["mass20To60","mass60To86","mass60To81","mass81To101","mass86To96","mass96To150","mass101To150","mass150To200","mass200To300","mass300To400","mass400","lowMass","highMass","highMassOld","edgeMass"]
-	#~ massRegions = ["HighMass"]
-	#~ massRegions = ["86To96"]
-	#~ nLLRegions = ["default","lowNll","highNll"]
-	#~ nLLRegions = ["highNll"]
-	#~ massRegions = ["edgeMass"]
+	
+	### Two likelihood bins and MT2 cut
 	nLLRegions = ["lowNLL","highNLL"]
-	HTRegions = ["lowHT","mediumHT","highHT"]
-	#~ MT2Regions = ["lowMT2","highMT2"]
 	MT2Regions = ["highMT2"]
 	
-	signalBins = []
-	signalCuts = {}
-
 	
-	#~ for massRegion in massRegions:
-		#~ for nLLRegion in nLLRegions:
-			#~ for HTRegion in HTRegions:
-				#~ signalBins.append("%s_%s_%s"%(massRegion,nLLRegion,HTRegion))
-				#~ signalCuts["%s_%s_%s"%(massRegion,nLLRegion,HTRegion)] = "%s && %s && %s"%(massCuts[massRegion],nLLCuts[nLLRegion],HTCuts[HTRegion])
-	#~ for massRegion in massRegions:
-		#~ for nLLRegion in nLLRegions:
-			#~ for MT2Region in MT2Regions:
-				#~ signalBins.append("%s_%s_%s"%(massRegion,nLLRegion,MT2Region))
-				#~ signalCuts["%s_%s_%s"%(massRegion,nLLRegion,MT2Region)] = "%s && %s && %s"%(massCuts[massRegion],nLLCuts[nLLRegion],MT2Cuts[MT2Region])
+	signalBins = []
+	signalCuts = {}	
+	
+	plot = getPlot("mllPlotROutIn")
+
+	### Moriond main regions
 	for massRegion in massRegions:
 		for nLLRegion in nLLRegions:
-			signalBins.append("%s_%s"%(massRegion,nLLRegion))
-			signalCuts["%s_%s"%(massRegion,nLLRegion)] = "%s && %s"%(massCuts[massRegion],nLLCuts[nLLRegion])
+			for MT2Region in MT2Regions:
+				signalBins.append("%s_%s_%s"%(massRegion,nLLRegion,MT2Region))
+				signalCuts["%s_%s_%s"%(massRegion,nLLRegion,MT2Region)] = "%s && %s && %s"%(massCuts[massRegion],nLLCuts[nLLRegion],MT2Cuts[MT2Region])
+				
+	selection = getRegion("SignalHighMT2DeltaPhiJetMet")
+	
+	### Check of ICHEP deviation -> No MT2 cut
+	#~ for massRegion in massRegions:
+		#~ for nLLRegion in nLLRegions:
+			#~ signalBins.append("%s_%s"%(massRegion,nLLRegion))
+			#~ signalCuts["%s_%s"%(massRegion,nLLRegion)] = "%s && %s"%(massCuts[massRegion],nLLCuts[nLLRegion])
+	#~ selection = getRegion("SignalInclusive")
+			
+	### For 8 TeV legacy -> no MT2 and likelihood
 	#~ for massRegion in massRegions:
 		#~ signalBins.append("%s"%massRegion)
 		#~ signalCuts["%s"%massRegion] = "%s"%massCuts[massRegion]
-	
-	#~ plot = getPlot("mllPlot")
-	plot = getPlot("mllPlotROutIn")
-	#~ selection = getRegion("SignalInclusive")
 	#~ selection = getRegion("SignalCentralOld")
-	selection = getRegion("SignalHighMT2DeltaPhiJetMet")
+	
 	plot.addRegion(selection)
 	plot.cuts = plot.cuts % runRange.runCut
 	plot.cuts = plot.cuts.replace("p4.M()","mll")	
 	plot.variable = plot.variable.replace("p4.M()","mll")	
 		
 	counts = {}
-				
+	
+	### To check all MC			
 	#~ backgrounds = ["Rare","SingleTop","TT_Powheg","Diboson","DrellYanTauTau","DrellYan"]
-	backgrounds = ["TTZNonFS","RareNonFS","ZZNonFS","WZNonFS","DrellYan"]
-	#~ backgrounds = ["RareWZOnZ","RareZZOnZ","RareTTZOnZ","RareRestOnZ"]
-	#~ backgrounds = ["TT_Powheg"]
+	
+	### There were no Z+jets estimates for ICHEP region on Moriond dataset -> take from MC
+	#~ backgrounds = ["TTZNonFS","RareNonFS","ZZNonFS","WZNonFS","DrellYan"]
+	
+	### For Moriond
+	backgrounds = ["RareWZOnZ","RareZZOnZ","RareTTZOnZ","RareRestOnZ"]
+
 	eventCounts = totalNumberOfGeneratedEvents(path)
 	
 	defaultCut = plot.cuts
 	
+	### loop over signal regions
 	for signalBin in signalBins:
 		
+		### Add signal cut and remove those that are renamed or already applied
+		### on NLL datasets
 		plot.cuts = defaultCut.replace("chargeProduct < 0","chargeProduct < 0 && %s"%(signalCuts[signalBin]))	
 		plot.cuts = plot.cuts.replace("metFilterSummary > 0 &&","")	
 		plot.cuts = plot.cuts.replace("triggerSummary > 0 &&","")	
 		plot.cuts = plot.cuts.replace("p4.Pt()","pt")
-		#~ plot.cuts = plot.cuts.replace("genWeight*weight*","")	
-		#~ plot.cuts = plot.cuts.replace("genWeight*weight*","fullSimScaleFactor1*fullSimScaleFactor2*")	
-		#~ plot.cuts = plot.cuts.replace("leptonFullSimScaleFactor1*leptonFullSimScaleFactor2*","")	
+		
 		print plot.cuts
-		#~ plot.cuts = plot.cuts.replace("met","metJESUp")	
-		#~ plot.cuts = plot.cuts.replace("nJets","nShiftedJetsJESUp")	
-		#~ plot.cuts = plot.cuts.replace("nLL","nLLJESUp")	
-		#~ plot.cuts = plot.cuts.replace("MT2","MT2JESUp")	
-				
-		#~ plot.cuts = plot.cuts.replace("met","metJESDown")	
-		#~ plot.cuts = plot.cuts.replace("nJets","nShiftedJetsJESDown")	
-		#~ plot.cuts = plot.cuts.replace("nLL","nLLJESDown")	
-		#~ plot.cuts = plot.cuts.replace("MT2","MT2JESDown")	
 				
 		processes = []
 		for background in backgrounds:
@@ -206,6 +191,7 @@ def plot():
 		histoEEDown.Scale(triggerEffs.inclusive.effEE.val)
 		histoMMDown.Scale(triggerEffs.inclusive.effMM.val)
 		
+		### For 8 TeV region: Central selection only
 		#~ histoEE.Scale(triggerEffs.central.effEE.val)
 		#~ histoMM.Scale(triggerEffs.central.effMM.val)
 
@@ -246,15 +232,9 @@ def plot():
 		#~ counts["%s_OF_Up"%signalBin] = eventYieldOFUp*rSFOFDirect.central.val
 		#~ counts["%s_OF_Down"%signalBin] = eventYieldOFDown*rSFOFDirect.central.val
 
-	#~ outFilePkl = open("shelvesMT2/TTbar_40fb.pkl","w")
-	#~ outFilePkl = open("shelves/FullMC_40fb_OldOnZ.pkl","w")
-	#~ outFilePkl = open("shelvesMT2/FullMC_40fb_MassStudy_DeltaPhi.pkl","w")
-	#~ outFilePkl = open("shelvesMT2/FullMC_legacy_17fb.pkl","w")
-	outFilePkl = open("shelvesMT2/RareOnZ_Powheg.pkl","w")
-	#~ outFilePkl = open("shelvesMT2/RareOnZ_3.pkl","w")
+	outFilePkl = open("shelves/RareOnZ_Moriond.pkl","w")
 	#~ outFilePkl = open("shelves/OnZBG_ICHEP_36fb.pkl","w")
-	#~ outFilePkl = open("shelves/OnZBG_legacy_36fb.pkl","w")
-	#~ outFilePkl = open("shelves/TTZ.pkl","w")
+	#~ outFilePkl = open("shelves/RareOnZBG_legacy_36fb.pkl","w")
 	pickle.dump(counts, outFilePkl)
 	outFilePkl.close()
 	

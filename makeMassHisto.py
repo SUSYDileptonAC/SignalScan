@@ -74,21 +74,16 @@ def createHistoFromTree(tree, variable, weight, nBins, firstBin, lastBin, nEvent
 if (__name__ == "__main__"):
 	from ROOT import TCanvas, TPad, TH1F, TH1I, THStack, TLegend, TF1, TH2F, TH2D, TFile
 	
-	#~ firstBinX = 387.5
-	#~ lastBinX = 962.5
-	#~ nBinsX = 23
-	#~ 
-	#~ firstBinY = 115.
-	#~ lastBinY = 912.5
-	#~ nBinsY = 34
-	
 	nBinsX = 21
 	x_bins =  array('d',[ 687.5, 712.5, 737.5, 762.5, 787.5, 825., 875., 925., 975., 1025., 1075., 1125., 1175., 1225., 1275., 1325., 1375., 1425., 1475., 1525., 1575., 1625.])
-	#~ x_bins =  array('d',[ 687.5, 712.5, 737.5, 762.5, 787.5, 825., 875., 925., 975., 1025., 1075., 1125., 1175., 1225., 1275., 1325., 1375., 1425., 1475., 1525.])
 	nBinsY = 41
 	y_bins =  array('d',[137.5,162.5,187.5, 212.5, 237.5, 262.5, 287.5, 312.5, 337.5, 362.5, 387.5, 412.5, 437.5, 462.5, 487.5, 512.5, 537.5, 562.5, 587.5, 612.5, 637.5, 662.5, 687.5, 712.5, 737.5, 775., 825., 875., 925., 975., 1025., 1075., 1125., 1175., 1225., 1275., 1325., 1375., 1425., 1475., 1525., 1575.])
-	#~ y_bins =  array('d',[137.5,162.5,187.5, 212.5, 237.5, 262.5, 287.5, 312.5, 337.5, 362.5, 387.5, 412.5, 437.5, 462.5, 487.5, 512.5, 537.5, 562.5, 587.5, 612.5, 637.5, 662.5, 687.5, 712.5, 737.5, 775., 825., 875., 925., 975., 1025., 1075., 1125., 1175., 1225., 1275., 1325., 1375., 1425., 1475.])
 
+	### There is an overlap between a privately produced sample (produced
+	### with sbottom massed from 1350 to 1600 and some missing ones below 1000)
+	### and an official sample in the Spring16 campaign (1000 to 1500)
+	### Therefore we have to distinguish which we use as a source and
+	### cannot simply merge
 	
 	sampleName1 = "Nominator1"
 	sampleName2 = "Nominator2"
@@ -105,7 +100,7 @@ if (__name__ == "__main__"):
 	for i in range (1,9):
 		histosScaleWeights["ScaleWeight"+str(i)] = TH2F("ScaleWeight"+str(i), "ScaleWeight"+str(i), nBinsX, x_bins, nBinsY, y_bins)
 	
-	f1 = TFile("T6bbllsleptonDenominatorHisto7.root","RECREATE")
+	f1 = TFile("T6bbllsleptonDenominatorHisto.root","RECREATE")
 	
 	m_b_min = 700
 	m_b_max = 1500
@@ -155,15 +150,13 @@ if (__name__ == "__main__"):
 						eventsISRLowPU = histoLowPU.Integral()
 							
 						print "msbottom: "+str(m_b)+", mneutralino: "+str(m_n)+", Events: "+str(events)
-						#~ print "msbottom: "+str(m_b)+", mneutralino: "+str(m_n)+", ISRNormalization: "+str(events/eventsISRWeighted)
 						histo2D.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events)
 						histo2DHighPU.SetBinContent(histo2DHighPU.GetXaxis().FindBin(m_b),histo2DHighPU.GetYaxis().FindBin(m_n),eventsISRHighPU)
 						histo2DLowPU.SetBinContent(histo2DHighPU.GetXaxis().FindBin(m_b),histo2DLowPU.GetYaxis().FindBin(m_n),eventsISRLowPU)
 						
+						### Ratio definition for ISR normalization might seem a bit counter intuitive
+						### but the definition is consistent with the way it is used in produceSystematics
 						if events > 0:
-							#~ histoISRNormalization.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events/eventsISRWeighted)
-							#~ histoISRNormalizationUp.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events/eventsISRWeightedUp)
-							#~ histoISRNormalizationDown.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events/eventsISRWeightedDown)
 							histoISRNormalization.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),eventsISRWeighted/events)
 							histoISRNormalizationUp.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),eventsISRWeightedUp/events)
 							histoISRNormalizationDown.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),eventsISRWeightedDown/events)
@@ -234,15 +227,11 @@ if (__name__ == "__main__"):
 						eventsISRLowPU = histoLowPU.Integral()
 							
 						print "msbottom: "+str(m_b)+", mneutralino: "+str(m_n)+", Events: "+str(events)
-						#~ print "msbottom: "+str(m_b)+", mneutralino: "+str(m_n)+", ISRNormalization: "+str(events/eventsISRWeighted)
 						histo2D.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events)
 						histo2DHighPU.SetBinContent(histo2DHighPU.GetXaxis().FindBin(m_b),histo2DHighPU.GetYaxis().FindBin(m_n),eventsISRHighPU)
 						histo2DLowPU.SetBinContent(histo2DHighPU.GetXaxis().FindBin(m_b),histo2DLowPU.GetYaxis().FindBin(m_n),eventsISRLowPU)
 						
 						if events > 0:
-							#~ histoISRNormalization.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events/eventsISRWeighted)
-							#~ histoISRNormalizationUp.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events/eventsISRWeightedUp)
-							#~ histoISRNormalizationDown.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),events/eventsISRWeightedDown)
 							histoISRNormalization.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),eventsISRWeighted/events)
 							histoISRNormalizationUp.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),eventsISRWeightedUp/events)
 							histoISRNormalizationDown.SetBinContent(histo2D.GetXaxis().FindBin(m_b),histo2D.GetYaxis().FindBin(m_n),eventsISRWeightedDown/events)

@@ -59,10 +59,11 @@ def plot():
 		
 		while m_n < m_b:
 			
+			### Privately produced points that were missing before have less statistics
+			### than the surrounding points -> cause some strange effects in plot
+			### better to ignore them and let root interpolate the histogram
 			if not ((m_b == 775 and m_n == 750) or (m_b == 800 and m_n == 150) or (m_b == 950 and m_n == 250) or (m_b == 950 and m_n == 300) or (m_b == 950 and m_n == 500) or (m_b == 950 and m_n == 550) or (m_b == 950 and m_n == 850) or (m_b == 950 and m_n == 900)):	
-				#~ print "Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n))
 				limitFile = open("Limits/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
-				#~ limitFile = open("LimitsMT2OnZ/T6bbllslepton_%s_%s.result.txt"%(str(m_b),str(m_n)),"r")
 				masses_b.append(m_b)
 				masses_n.append(m_n)
 				M_SBOTTOM = "m_b_"+str(m_b)
@@ -105,8 +106,6 @@ def plot():
 	
 	for exclusionContour in exclusionContours:
 		Graphs[exclusionContour] = TGraph2D("Graph_%s"%(exclusionContour),exclusionContour, len(Exclusions[exclusionContour]), array('d',masses_b), array('d',masses_n), array('d',Exclusions[exclusionContour]))
-		#~ Graphs[exclusionContour].SetNpx(nxbins)
-		#~ Graphs[exclusionContour].SetNpy(nybins)
 	
 	dots = TGraph(len(masses_b), array('d',masses_b), array('d',masses_n))
 	
@@ -240,7 +239,6 @@ def plot():
 	Overlay.Draw("f")
 	
 	latexLumi.DrawLatex(0.83, 0.94, "%s fb^{-1} (13 TeV)"%(printLumi))
-	#~ latexCMS.DrawLatex(0.18,0.94,"CMS Preliminary")
 	latexCMS.DrawLatex(0.185,0.94,"CMS")
 	#~ latexCMSExtra.DrawLatex(0.29,0.94,"Preliminary")
 	plotPad.RedrawAxis()
