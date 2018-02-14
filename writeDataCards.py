@@ -8,7 +8,7 @@ import os
 import pickle
 
 import sys
-sys.path.append("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase")
+sys.path.append("../frameWorkBase")
 from messageLogger import messageLogger as log
 from ROOT import TCanvas, TPad, TH1F, TH2F, TH1I, THStack, TLegend, TMath, TF1
 import pickle
@@ -25,16 +25,16 @@ from optparse import OptionParser
 def readPickle(name,regionName,runName,MC=False):
 	
 	if MC:
-		if os.path.isfile("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s_MC.pkl"%(name,regionName,runName)):
-			result = pickle.load(open("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/%s_%s_%s_MC.pkl"%(name,regionName,runName),"rb"))
+		if os.path.isfile("../frameWorkBase/shelves/%s_%s_%s_MC.pkl"%(name,regionName,runName)):
+			result = pickle.load(open("../frameWorkBase/%s_%s_%s_MC.pkl"%(name,regionName,runName),"rb"))
 		else:
-			print "/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl not found, exiting"%(name,regionName,runName) 		
+			print "../frameWorkBase/shelves/%s_%s_%s.pkl not found, exiting"%(name,regionName,runName) 		
 			sys.exit()		
 	else:
-		if os.path.isfile("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl"%(name,regionName,runName)):
-			result = pickle.load(open("/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl"%(name,regionName,runName),"rb"))
+		if os.path.isfile("../frameWorkBase/shelves/%s_%s_%s.pkl"%(name,regionName,runName)):
+			result = pickle.load(open("../frameWorkBase/shelves/%s_%s_%s.pkl"%(name,regionName,runName),"rb"))
 		else:
-			print "/.automount/home/home__home4/institut_1b/schomakers/FrameWork/frameWorkBase/shelves/%s_%s_%s.pkl not found, exiting"%(name,regionName,runName) 		
+			print "../frameWorkBase/shelves/%s_%s_%s.pkl not found, exiting"%(name,regionName,runName) 		
 			sys.exit()
 
 	return result
@@ -151,11 +151,11 @@ def writeDataCards(systematics):
 	runRange = getRunRange(runRanges.name)
 	lumi = runRange.lumi
 
-	path = "shelvesSystematics"	
+	path = "shelves"	
 	
 	generalSignalLabel = "T6bbllslepton"
 	
-	OnZPickle = loadPickles("shelvesMT2/RareOnZ_Powheg.pkl")
+	OnZPickle = loadPickles("../frameWorkBase/shelves/RareOnZBG_Moriond_36fb.pkl")
 	
 	countingShelves= {"NLL":readPickle("cutAndCountNLL",regionsToUse.signal.inclusive.name , runRanges.name),"onZ":OnZPickle}
 	
